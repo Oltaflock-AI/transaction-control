@@ -1,4 +1,5 @@
 from celery import Celery
+
 from tc.core.config import settings
 
 celery_app = Celery(
