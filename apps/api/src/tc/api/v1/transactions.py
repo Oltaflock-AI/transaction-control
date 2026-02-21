@@ -1,33 +1,137 @@
+from __future__ import annotations
+
+import uuid
+from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from tc.core.security import CurrentUser
-from tc.db.models.membership import Membership
-from tc.db.models.transaction import Transaction
 from tc.db.session import get_db
+from tc.services.transaction_service import (
+    create_transaction,
+    get_transaction,
+    list_user_transactions,
+    user_belongs_to_org,
+)
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
+DB = Annotated[Session, Depends(get_db)]
 
-@router.get("")
-def list_transactions(
-    user: CurrentUser,
-    db: Annotated[Session, Depends(get_db)],
-):
-    """Return transactions belonging to organisations the caller is a member of."""
-    org_ids = [
-        m.org_id for m in db.query(Membership.org_id).filter(Membership.user_id == user.id).all()
-    ]
-    txns = db.query(Transaction).filter(Transaction.org_id.in_(org_ids)).all()
+
+# -- Schemas ------------------------------------------------------------------
+
+
+class TransactionCreate(BaseModel):
+    org_id: uuid.UUID
+    title: str
+    description: str | None = None
+    property_address: str | None = None
+    close_date: date | None = None
+
+
+# -- Helpers ------------------------------------------------------------------
+
+
+def _txn_to_dict(t, *, include_tasks: bool = False):
+    out = {
+        "id": str(t.id),
+        "org_id": str(t.org_id),
+        "title": t.title,
+        "description": t.description,
+        "status": t.status,
+        "property_address": t.property_address,
+        "close_date": t.close_date.isoformat() if t.close_date else None,
+        "created_at": t.created_at.isoformat() if t.created_at else None,
+    }
+    if include_tasks:
+        out["tasks"] = [
+            {
+                "id": str(task.id),
+                "title": task.title,
+                "status": task.status,
+                "due_at": task.due_at.isoformat() if task.due_at else None,
+            }
+            for task in t.tasks
+        ]
+    return out
+
+
+# -- Endpoints ----------------------------------------------------------------
+
+
+@router.post("", status_code=status.HTTP_201_CREATED)
+def create(body: TransactionCreate, user: CurrentUser, db: DB):
+    if not user_belongs_to_org(db, user.id, body.org_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this organisation",
+        )
+
+    txn = create_transaction(
+        db,
+        org_id=body.org_id,
+        title=body.title,
+        description=body.description,
+        property_address=body.property_address,
+        close_date=body.close_date,
+    )
+
+    from tc.workers.tasks import generate_timeline
+
+    generate_timeline.delay(str(txn.id))
+
+    return _txn_to_dict(txn)
+
+
+@router.get("/{transaction_id}")
+def get_by_id(transaction_id: uuid.UUID, user: CurrentUser, db: DB):
+    txn = get_transaction(db, transaction_id)
+    if txn is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found",
+        )
+    if not user_belongs_to_org(db, user.id, txn.org_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this organisation",
+        )
+    return _txn_to_dict(txn, include_tasks=True)
+
+
+@router.get("/{transaction_id}/tasks")
+def get_tasks(transaction_id: uuid.UUID, user: CurrentUser, db: DB):
+    """List tasks belonging to a transaction."""
+    txn = get_transaction(db, transaction_id)
+    if txn is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found",
+        )
+    if not user_belongs_to_org(db, user.id, txn.org_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this organisation",
+        )
     return [
         {
-            "id": str(t.id),
-            "title": t.title,
-            "status": t.status,
-            "org_id": str(t.org_id),
-            "created_at": t.created_at.isoformat() if t.created_at else None,
+            "id": str(task.id),
+            "transaction_id": str(task.transaction_id),
+            "title": task.title,
+            "status": task.status,
+            "due_at": task.due_at.isoformat() if task.due_at else None,
+            "assignee_id": str(task.assignee_id) if task.assignee_id else None,
+            "created_at": task.created_at.isoformat() if task.created_at else None,
         }
-        for t in txns
+        for task in txn.tasks
     ]
+
+
+@router.get("")
+def list_all(user: CurrentUser, db: DB):
+    txns = list_user_transactions(db, user.id)
+    return [_txn_to_dict(t) for t in txns]

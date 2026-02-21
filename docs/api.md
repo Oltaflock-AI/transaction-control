@@ -58,22 +58,91 @@ Returns `{ "ok": true }`. No authentication required.
 
 All of the following require `Authorization: Bearer <token>`.
 
-### GET `/transactions`
+### POST `/transactions`
 
-Returns transactions belonging to organisations the caller is a member of.
+Create a new transaction. Automatically enqueues a Celery task
+(`generate_timeline`) that creates 5 starter tasks with staggered due dates.
+
+**Request:**
+```json
+{
+  "org_id": "uuid",
+  "title": "123 Main St",
+  "description": "Residential sale",
+  "property_address": "123 Main St, Springfield",
+  "close_date": "2026-04-15"
+}
+```
+
+Only `org_id` and `title` are required. The caller must be a member of the org.
+
+**Response (201):**
+```json
+{
+  "id": "uuid",
+  "org_id": "uuid",
+  "title": "123 Main St",
+  "description": "Residential sale",
+  "status": "draft",
+  "property_address": "123 Main St, Springfield",
+  "close_date": "2026-04-15",
+  "created_at": "2026-02-21T..."
+}
+```
+
+**Errors:** `401` — not authenticated. `403` — not a member of the org.
+
+### GET `/transactions/{id}`
+
+Fetch a single transaction with its tasks.
+
+**Response (200):**
+```json
+{
+  "id": "uuid",
+  "org_id": "uuid",
+  "title": "...",
+  "status": "draft",
+  "description": null,
+  "property_address": null,
+  "close_date": null,
+  "created_at": "2026-02-21T...",
+  "tasks": [
+    { "id": "uuid", "title": "Review contract", "status": "todo", "due_at": "..." },
+    { "id": "uuid", "title": "Order inspection", "status": "todo", "due_at": "..." }
+  ]
+}
+```
+
+**Errors:** `404` — not found. `403` — not a member of the org.
+
+### GET `/transactions/{id}/tasks`
+
+List tasks belonging to a transaction. Tasks are created asynchronously by the
+`generate_timeline` Celery job after transaction creation.
 
 **Response (200):**
 ```json
 [
   {
     "id": "uuid",
-    "title": "...",
-    "status": "draft",
-    "org_id": "uuid",
+    "transaction_id": "uuid",
+    "title": "Review contract",
+    "status": "todo",
+    "due_at": "2026-02-24T...",
+    "assignee_id": null,
     "created_at": "2026-02-21T..."
   }
 ]
 ```
+
+**Errors:** `404` — transaction not found. `403` — not a member of the org.
+
+### GET `/transactions`
+
+List all transactions belonging to the caller's organisations.
+
+**Response (200):** array of transaction objects (without nested tasks).
 
 ### `/tasks`, `/timeline`
 
@@ -83,6 +152,17 @@ Protected by `require_user`. Endpoints TBD (stubs registered).
 
 Protected by `require_role("admin")`. Requires the caller to have at least one
 membership with `role = "admin"`. Returns `403` otherwise. Endpoints TBD.
+
+---
+
+## Background Jobs (Celery)
+
+| Task | Trigger | Effect |
+|---|---|---|
+| `tc.generate_timeline` | `POST /transactions` | Creates 5 default tasks + timeline items for the new transaction |
+
+Default tasks created: Review contract (3d), Order inspection (7d),
+Appraisal review (14d), Title search (21d), Final walkthrough (28d).
 
 ---
 
