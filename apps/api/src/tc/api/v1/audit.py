@@ -1,3 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
-router = APIRouter(prefix="/audit", tags=["audit"])
+from tc.core.security import require_role
+
+router = APIRouter(
+    prefix="/audit",
+    tags=["audit"],
+    dependencies=[Depends(require_role("admin"))],
+)
