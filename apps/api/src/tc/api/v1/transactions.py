@@ -11,7 +11,7 @@ from tc.db.session import get_db
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
 
-@router.get("/")
+@router.get("")
 def list_transactions(
     user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],

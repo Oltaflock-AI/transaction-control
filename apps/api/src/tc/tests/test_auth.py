@@ -38,16 +38,16 @@ class TestDevToken:
 
 class TestProtectedEndpoints:
     def test_transactions_requires_auth(self, client):
-        r = client.get("/api/v1/transactions/")
+        r = client.get("/api/v1/transactions")
         assert r.status_code == 401
 
     def test_transactions_with_valid_token(self, client, auth_header, seed_user):
-        r = client.get("/api/v1/transactions/", headers=auth_header)
+        r = client.get("/api/v1/transactions", headers=auth_header)
         assert r.status_code == 200
         assert isinstance(r.json(), list)
 
     def test_transactions_with_garbage_token(self, client):
-        r = client.get("/api/v1/transactions/", headers={"Authorization": "Bearer garbage"})
+        r = client.get("/api/v1/transactions", headers={"Authorization": "Bearer garbage"})
         assert r.status_code == 401
 
     def test_transactions_with_expired_token(self, client, seed_user):
@@ -61,7 +61,7 @@ class TestProtectedEndpoints:
         exp = datetime.now(UTC) - timedelta(hours=1)
         payload = {"sub": str(user.id), "exp": int(exp.timestamp()), "iat": int(exp.timestamp())}
         token = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALG)
-        r = client.get("/api/v1/transactions/", headers={"Authorization": f"Bearer {token}"})
+        r = client.get("/api/v1/transactions", headers={"Authorization": f"Bearer {token}"})
         assert r.status_code == 401
 
 
@@ -75,5 +75,5 @@ class TestTokenFromLogin:
         )
         token = login_r.json()["access_token"]
 
-        txn_r = client.get("/api/v1/transactions/", headers={"Authorization": f"Bearer {token}"})
+        txn_r = client.get("/api/v1/transactions", headers={"Authorization": f"Bearer {token}"})
         assert txn_r.status_code == 200
