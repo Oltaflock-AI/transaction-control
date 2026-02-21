@@ -3,9 +3,9 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+import tc.db.models  # noqa: F401 — ensure all models are registered
 from tc.core.config import settings
 from tc.db.base import Base
-import tc.db.models  # noqa: F401 — ensure all models are registered
 
 config = context.config
 if config.config_file_name is not None:
