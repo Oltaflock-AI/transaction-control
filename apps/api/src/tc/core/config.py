@@ -19,5 +19,7 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: str = "http://localhost:3000"
 
+    DEADLINE_CHECK_MINUTES: int = 15
+
 
 settings = Settings()

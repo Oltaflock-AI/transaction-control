@@ -16,3 +16,16 @@ def generate_timeline(transaction_id: str) -> dict:
         return {"transaction_id": transaction_id, "tasks_created": len(tasks)}
     finally:
         db.close()
+
+
+@celery_app.task(name="tc.check_deadlines")
+def check_deadlines_task() -> dict:
+    from tc.db.session import SessionLocal
+    from tc.services.deadline_service import check_deadlines
+
+    db = SessionLocal()
+    try:
+        count = check_deadlines(db)
+        return {"marked_overdue": count}
+    finally:
+        db.close()

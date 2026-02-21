@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from tc.core.security import CurrentUser
 from tc.db.session import get_db
+from tc.services.audit_service import list_audit_events_for_transaction
 from tc.services.transaction_service import (
     create_transaction,
     get_transaction,
@@ -135,3 +136,32 @@ def get_tasks(transaction_id: uuid.UUID, user: CurrentUser, db: DB):
 def list_all(user: CurrentUser, db: DB):
     txns = list_user_transactions(db, user.id)
     return [_txn_to_dict(t) for t in txns]
+
+
+@router.get("/{transaction_id}/audit")
+def get_audit(transaction_id: uuid.UUID, user: CurrentUser, db: DB):
+    """Audit trail for a transaction and its tasks."""
+    txn = get_transaction(db, transaction_id)
+    if txn is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found",
+        )
+    if not user_belongs_to_org(db, user.id, txn.org_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this organisation",
+        )
+    events = list_audit_events_for_transaction(db, transaction_id)
+    return [
+        {
+            "id": str(e.id),
+            "action": e.action,
+            "entity_type": e.entity_type,
+            "entity_id": str(e.entity_id) if e.entity_id else None,
+            "actor_id": str(e.actor_id) if e.actor_id else None,
+            "detail": e.detail,
+            "created_at": e.created_at.isoformat() if e.created_at else None,
+        }
+        for e in events
+    ]

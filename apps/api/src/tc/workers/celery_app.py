@@ -9,3 +9,11 @@ celery_app = Celery(
 )
 
 celery_app.autodiscover_tasks(["tc.workers.tasks"])
+
+celery_app.conf.beat_schedule = {
+    "check-deadlines": {
+        "task": "tc.check_deadlines",
+        "schedule": settings.DEADLINE_CHECK_MINUTES * 60,
+    },
+}
+celery_app.conf.timezone = "UTC"
