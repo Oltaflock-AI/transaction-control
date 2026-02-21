@@ -18,8 +18,7 @@ def list_transactions(
 ):
     """Return transactions belonging to organisations the caller is a member of."""
     org_ids = [
-        m.org_id
-        for m in db.query(Membership.org_id).filter(Membership.user_id == user.id).all()
+        m.org_id for m in db.query(Membership.org_id).filter(Membership.user_id == user.id).all()
     ]
     txns = db.query(Transaction).filter(Transaction.org_id.in_(org_ids)).all()
     return [
