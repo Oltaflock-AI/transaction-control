@@ -29,7 +29,7 @@ packages = ["src/tc"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-exclude = ["src/tc/db/migrations/versions"]
+exclude = ["src/tc/db/migrations/versions", ".venv"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
