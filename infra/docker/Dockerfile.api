@@ -11,5 +11,6 @@ WORKDIR /app/apps/api
 RUN uv sync || true
 
 COPY apps/api /app/apps/api
+COPY scripts /app/scripts
 
 EXPOSE 8000
