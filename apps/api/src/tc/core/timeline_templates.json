@@ -1,0 +1,34 @@
+{
+    "sample_deal": [
+      {
+        "title": "Review contract",
+        "offset_days": 3,
+        "description": "Review the contract with the client",
+        "category": "Contract"
+      },
+      {
+        "title": "Order inspection",
+        "offset_days": 7,
+        "description": "Schedule and order the property inspection",
+        "category": "Inspection"
+      },
+      {
+        "title": "Appraisal review",
+        "offset_days": 14,
+        "description": "Review the appraisal report",
+        "category": "Appraisal"
+      },
+      {
+        "title": "Title search",
+        "offset_days": 21,
+        "description": "Conduct a title search for the property",
+        "category": "Title"
+      },
+      {
+        "title": "Final walkthrough",
+        "offset_days": 28,
+        "description": "Perform the final walkthrough with the client",
+        "category": "Walkthrough"
+      }
+    ]
+  }
