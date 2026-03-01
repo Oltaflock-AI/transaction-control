@@ -52,3 +52,12 @@ def user_belongs_to_org(db: Session, user_id: uuid.UUID, org_id: uuid.UUID) -> b
         .first()
         is not None
     )
+
+
+def user_has_access_to_transaction(
+    db: Session, user_id: uuid.UUID, transaction_id: uuid.UUID
+) -> bool:
+    txn = get_transaction(db, transaction_id)
+    if not txn:
+        return False
+    return user_belongs_to_org(db, user_id, txn.org_id)
