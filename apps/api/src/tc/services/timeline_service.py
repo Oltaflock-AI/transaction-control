@@ -14,6 +14,7 @@ from tc.domain.enums import TaskStatus
 # Load the timeline templates JSON file
 TEMPLATE_FILE = Path(__file__).parent.parent / "core" / "timeline_templates.json"
 
+
 def load_template(template_name: str) -> list[dict]:
     """Load a timeline template by name from the JSON file."""
     with open(TEMPLATE_FILE, "r") as f:
@@ -21,7 +22,9 @@ def load_template(template_name: str) -> list[dict]:
     return templates.get(template_name, [])
 
 
-def generate_default_timeline(db: Session, transaction_id: uuid.UUID, template_name: str = "sample_deal") -> list[Task]:
+def generate_default_timeline(
+    db: Session, transaction_id: uuid.UUID, template_name: str = "sample_deal"
+) -> list[Task]:
     """Create a set of starter tasks and matching timeline items for a new transaction."""
     now = datetime.now(UTC)
     tasks: list[Task] = []
@@ -59,8 +62,10 @@ def generate_default_timeline(db: Session, transaction_id: uuid.UUID, template_n
     db.commit()
     return tasks
 
+
 def get_timeline_items(db: Session, transaction_id: uuid.UUID) -> list[TimelineItem]:
     return db.query(TimelineItem).filter(TimelineItem.transaction_id == transaction_id).all()
+
 
 def mark_item_complete(db: Session, item_id: uuid.UUID) -> TimelineItem | None:
     item = db.query(TimelineItem).filter(TimelineItem.id == item_id).first()

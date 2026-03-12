@@ -53,7 +53,7 @@ def _txn_to_dict(t, *, include_tasks: bool = False):
             {
                 "id": str(task.id),
                 "title": task.title,
-                "offset_days":task.offset_days,
+                "offset_days": task.offset_days,
                 "description": task.description,
                 "category": task.category,
                 "status": task.status,

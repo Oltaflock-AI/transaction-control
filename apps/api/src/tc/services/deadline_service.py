@@ -83,17 +83,20 @@ def check_deadlines(db: Session) -> dict:
 
     due_soon_count = 0
     for task in due_soon_tasks:
-        already_logged = db.query(EventLog).filter(
-            EventLog.entity_id == task.id,
-            EventLog.event_type == "task.due_soon"
-        ).first()
+        already_logged = (
+            db.query(EventLog)
+            .filter(EventLog.entity_id == task.id, EventLog.event_type == "task.due_soon")
+            .first()
+        )
 
         if not already_logged:
             payload = {
                 "task_id": str(task.id),
                 "task_title": task.title,
                 "due_at": task.due_at.isoformat(),
-                "hours_remaining": round((task.due_at.replace(tzinfo=UTC)  - now).total_seconds() / 3600, 1),
+                "hours_remaining": round(
+                    (task.due_at.replace(tzinfo=UTC) - now).total_seconds() / 3600, 1
+                ),
             }
             db.add(
                 EventLog(
@@ -109,12 +112,13 @@ def check_deadlines(db: Session) -> dict:
     db.commit()
 
     logger.info(
-        "check_deadlines: marked %d overdue, detected %d new due-soon", 
-        len(overdue_tasks), due_soon_count
+        "check_deadlines: marked %d overdue, detected %d new due-soon",
+        len(overdue_tasks),
+        due_soon_count,
     )
-    
+
     return {
         "checked_at": now.isoformat(),
         "overdue_marked": len(overdue_tasks),
-        "due_soon_logged": due_soon_count
+        "due_soon_logged": due_soon_count,
     }

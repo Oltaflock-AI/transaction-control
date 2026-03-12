@@ -23,17 +23,21 @@ router = APIRouter(tags=["tasks"])
 
 DB = Annotated[Session, Depends(get_db)]
 
+
 class TaskCreate(BaseModel):
     title: str
     description: str | None = None
     assignee_id: uuid.UUID | None = None
     due_at: datetime | None = None
 
+
 class TaskStatusUpdate(BaseModel):
     status: str
-    
+
+
 class TaskAssign(BaseModel):
     assignee_id: uuid.UUID
+
 
 def _task_to_dict(task):
     return {
@@ -46,6 +50,7 @@ def _task_to_dict(task):
         "due_at": task.due_at.isoformat() if task.due_at else None,
         "created_at": task.created_at.isoformat() if task.created_at else None,
     }
+
 
 def _check_task_org_access(db: Session, user, task_id: uuid.UUID):
     """Look up a task and verify the user belongs to the transaction's org."""
@@ -63,13 +68,12 @@ def _check_task_org_access(db: Session, user, task_id: uuid.UUID):
         )
     return task
 
+
 @router.post(
     "/transactions/{transaction_id}/tasks",
     status_code=status.HTTP_201_CREATED,
 )
-def create_task_endpoint(
-    transaction_id: uuid.UUID, body: TaskCreate, user: CurrentUser, db: DB
-):
+def create_task_endpoint(transaction_id: uuid.UUID, body: TaskCreate, user: CurrentUser, db: DB):
     """Create a task on a transaction."""
     txn = get_transaction(db, transaction_id)
     if txn is None:
@@ -93,11 +97,13 @@ def create_task_endpoint(
     )
     return _task_to_dict(task)
 
+
 @router.get("/tasks/mine")
 def my_tasks(user: CurrentUser, db: DB):
     """List all tasks assigned to the current user across all orgs."""
     tasks = list_tasks_by_user(db, user.id)
     return [_task_to_dict(t) for t in tasks]
+
 
 @router.patch("/tasks/{task_id}/status")
 def update_status(task_id: uuid.UUID, body: TaskStatusUpdate, user: CurrentUser, db: DB):
@@ -107,11 +113,10 @@ def update_status(task_id: uuid.UUID, body: TaskStatusUpdate, user: CurrentUser,
     try:
         task = update_task_status(db, task_id=task_id, new_status=body.status)
     except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
     return _task_to_dict(task)
+
 
 @router.patch("/tasks/{task_id}/assign")
 def assign(task_id: uuid.UUID, body: TaskAssign, user: CurrentUser, db: DB):
@@ -121,11 +126,10 @@ def assign(task_id: uuid.UUID, body: TaskAssign, user: CurrentUser, db: DB):
     try:
         task = assign_task(db, task_id=task_id, assignee_id=body.assignee_id)
     except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
     return _task_to_dict(task)
+
 
 @router.get("/transactions/{transaction_id}/health")
 def health(transaction_id: uuid.UUID, user: CurrentUser, db: DB):
