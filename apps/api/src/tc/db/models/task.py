@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from tc.db.base import Base
@@ -25,5 +25,7 @@ class Task(Base):
         ForeignKey("users.id"), default=None, index=True
     )
     due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    offset_days: Mapped[int | None] = mapped_column(Integer, default=None)
+    category: Mapped[str | None] = mapped_column(String(100), default=None)
 
     transaction: Mapped[Transaction] = relationship(back_populates="tasks")
