@@ -121,7 +121,13 @@ def update_status(task_id: uuid.UUID, body: TaskStatusUpdate, user: CurrentUser,
 @router.patch("/tasks/{task_id}/assign")
 def assign(task_id: uuid.UUID, body: TaskAssign, user: CurrentUser, db: DB):
     """Assign a task to a user."""
-    _check_task_org_access(db, user, task_id)
+    task = _check_task_org_access(db, user, task_id)
+    txn = get_transaction(db, task.transaction_id)
+    if txn is not None and not user_belongs_to_org(db, body.assignee_id, txn.org_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Assignee must be a member of the organisation",
+        )
 
     try:
         task = assign_task(db, task_id=task_id, assignee_id=body.assignee_id)
