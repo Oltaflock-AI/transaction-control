@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import uuid
 import json
+import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -17,7 +17,7 @@ TEMPLATE_FILE = Path(__file__).parent.parent / "core" / "timeline_templates.json
 
 def load_template(template_name: str) -> list[dict]:
     """Load a timeline template by name from the JSON file."""
-    with open(TEMPLATE_FILE, "r") as f:
+    with open(TEMPLATE_FILE) as f:
         templates = json.load(f)
     return templates.get(template_name, [])
 
