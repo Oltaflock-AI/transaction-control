@@ -36,6 +36,7 @@ def generate_default_timeline(
         offset_days = task_config["offset_days"]
         description = task_config.get("description", "")
         category = task_config.get("category", "")
+        severity = task_config.get("severity", "medium")
 
         due = now + timedelta(days=offset_days)
 
@@ -44,6 +45,7 @@ def generate_default_timeline(
             title=title,
             offset_days=offset_days,
             category=category,
+            severity=severity,
             description=description,
             status=TaskStatus.todo,
             due_at=due,

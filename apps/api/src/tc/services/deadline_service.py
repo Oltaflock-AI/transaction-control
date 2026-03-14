@@ -45,6 +45,7 @@ def check_deadlines(db: Session) -> dict:
             "transaction_id": str(task.transaction_id),
             "old_status": old_status,
             "new_status": TaskStatus.overdue,
+            "severity": task.severity or "medium",
             "due_at": task.due_at.isoformat() if task.due_at else None,
             "marked_overdue_at": now.isoformat(),
         }
@@ -96,6 +97,7 @@ def check_deadlines(db: Session) -> dict:
             payload = {
                 "task_id": str(task.id),
                 "task_title": task.title,
+                "severity": task.severity or "medium",
                 "due_at": task.due_at.isoformat(),
                 "hours_remaining": round(
                     (task.due_at.astimezone(UTC) - now).total_seconds() / 3600, 1
