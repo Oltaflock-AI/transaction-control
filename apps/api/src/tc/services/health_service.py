@@ -63,7 +63,9 @@ def compute_health_score(db: Session, transaction_id: uuid.UUID) -> dict:
     if overdue_count > 0:
         reasons.append(f"{overdue_count} task(s) overdue (weighted score {overdue_weighted:.1f})")
     if due_soon_count > 0:
-        reasons.append(f"{due_soon_count} task(s) due in next 48h (weighted score {due_soon_weighted:.1f})")
+        reasons.append(
+            f"{due_soon_count} task(s) due in next 48h (weighted score {due_soon_weighted:.1f})"
+        )
 
     if has_critical_overdue or overdue_weighted >= 3.0:
         score = "RED"
@@ -75,4 +77,3 @@ def compute_health_score(db: Session, transaction_id: uuid.UUID) -> dict:
             reasons.append("All tasks on track")
 
     return {"score": score, "reasons": reasons}
-
