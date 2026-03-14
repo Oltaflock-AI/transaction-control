@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 from tc.db.models.event_log import EventLog
 from tc.db.models.task import Task
 from tc.domain.enums import TaskStatus
+from tc.domain.rules import evaluate_rules
 from tc.services.audit_service import create_audit_event
 
 logger = logging.getLogger(__name__)
@@ -69,6 +70,8 @@ def check_deadlines(db: Session) -> dict:
             detail=detail,
         )
 
+        evaluate_rules(db, trigger="task.overdue", source_task=task)
+
     due_soon_tasks: list[Task] = (
         db.query(Task)
         .options(joinedload(Task.transaction))
@@ -107,6 +110,9 @@ def check_deadlines(db: Session) -> dict:
                     detail=json.dumps(payload),
                 )
             )
+
+            evaluate_rules(db, trigger="task.due_soon", source_task=task)
+
             due_soon_count += 1
 
     db.commit()

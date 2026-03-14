@@ -18,6 +18,9 @@ def create_task(
     description: str | None = None,
     assignee_id: uuid.UUID | None = None,
     due_at: datetime | None = None,
+    dedupe_key: str | None = None,
+    category: str | None = None,
+    severity: str | None = None,
 ) -> Task:
     """Create a new task on a transaction and log an audit event."""
     from tc.db.models.transaction import Transaction
@@ -29,6 +32,9 @@ def create_task(
         assignee_id=assignee_id,
         due_at=due_at,
         status=TaskStatus.todo,
+        dedupe_key=dedupe_key,
+        category=category,
+        severity=severity,
     )
     db.add(task)
     db.flush()
