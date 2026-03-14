@@ -98,7 +98,7 @@ def check_deadlines(db: Session) -> dict:
                 "task_title": task.title,
                 "due_at": task.due_at.isoformat(),
                 "hours_remaining": round(
-                    (task.due_at.replace(tzinfo=UTC) - now).total_seconds() / 3600, 1
+                    (task.due_at.astimezone(UTC) - now).total_seconds() / 3600, 1
                 ),
             }
             db.add(

@@ -40,6 +40,8 @@ def create_task(
     db.flush()
 
     txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    if txn is None:
+        raise ValueError(f"Transaction {transaction_id} not found")
     create_audit_event(
         db,
         org_id=txn.org_id,
@@ -71,6 +73,8 @@ def update_task_status(
     db.flush()
 
     txn = db.query(Transaction).filter(Transaction.id == task.transaction_id).first()
+    if txn is None:
+        raise ValueError(f"Transaction {task.transaction_id} not found")
     create_audit_event(
         db,
         org_id=txn.org_id,
@@ -101,6 +105,8 @@ def assign_task(
     db.flush()
 
     txn = db.query(Transaction).filter(Transaction.id == task.transaction_id).first()
+    if txn is None:
+        raise ValueError(f"Transaction {task.transaction_id} not found")
     create_audit_event(
         db,
         org_id=txn.org_id,

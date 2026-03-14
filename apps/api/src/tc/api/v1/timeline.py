@@ -1,20 +1,21 @@
+import uuid
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-import uuid
 
-from tc.core.security import CurrentUser
-from tc.db.session import get_db
+from tc.core.security import CurrentUser, require_user
 from tc.db.models.timeline import TimelineItem
+from tc.db.session import get_db
 from tc.services import timeline_service, transaction_service
-from tc.core.security import require_user
+
+DB = Annotated[Session, Depends(get_db)]
 
 router = APIRouter(prefix="/timeline", tags=["timeline"], dependencies=[Depends(require_user)])
 
 
 @router.get("/transactions/{transaction_id}")
-def list_timeline_items(
-    transaction_id: uuid.UUID, user: CurrentUser, db: Session = Depends(get_db)
-):
+def list_timeline_items(transaction_id: uuid.UUID, user: CurrentUser, db: DB):
     """
     fetch specific transaction timeline items.
     """
@@ -26,7 +27,7 @@ def list_timeline_items(
 
 
 @router.patch("/{item_id}/complete")
-def complete_timeline_item(item_id: uuid.UUID, user: CurrentUser, db: Session = Depends(get_db)):
+def complete_timeline_item(item_id: uuid.UUID, user: CurrentUser, db: DB):
     """
     mark a timeline item as complete.
     """
