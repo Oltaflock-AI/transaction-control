@@ -45,3 +45,36 @@ def list_audit_events_for_transaction(db: Session, transaction_id: uuid.UUID) ->
         .order_by(AuditEvent.created_at.desc())
         .all()
     )
+
+
+def list_audit_events_for_org(
+    db: Session,
+    org_id: uuid.UUID,
+    *,
+    entity_type: str | None = None,
+    action: str | None = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> tuple[list[AuditEvent], int]:
+    """Return paginated audit events for an org with optional filters.
+
+    Returns (events, total_count).
+    """
+    query = db.query(AuditEvent).filter(AuditEvent.org_id == org_id)
+
+    if entity_type:
+        query = query.filter(AuditEvent.entity_type == entity_type)
+    if action:
+        query = query.filter(AuditEvent.action == action)
+
+    total = query.count()
+
+    events = (
+        query.order_by(AuditEvent.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    return events, total
+
