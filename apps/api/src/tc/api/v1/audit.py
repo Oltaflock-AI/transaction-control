@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from tc.core.security import require_role
+from tc.core.security import AdminUser, require_role
 from tc.db.models.membership import Membership
 from tc.db.session import get_db
 from tc.services.audit_service import list_audit_events_for_org
@@ -22,7 +22,7 @@ DB = Annotated[Session, Depends(get_db)]
 @router.get("")
 def list_org_audit(
     db: DB,
-    user=Depends(require_role("admin")),
+    user: AdminUser,
     entity_type: str | None = Query(None, description="Filter by entity type, e.g. 'task'"),
     action: str | None = Query(None, description="Filter by action, e.g. 'task.marked_overdue'"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),

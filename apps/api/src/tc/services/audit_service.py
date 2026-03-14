@@ -77,4 +77,3 @@ def list_audit_events_for_org(
     )
 
     return events, total
-

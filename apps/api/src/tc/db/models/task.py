@@ -28,6 +28,8 @@ class Task(Base):
     offset_days: Mapped[int | None] = mapped_column(Integer, default=None)
     category: Mapped[str | None] = mapped_column(String(100), default=None)
     severity: Mapped[str | None] = mapped_column(String(20), default=None)
-    dedupe_key: Mapped[str | None] = mapped_column(String(100), unique=True, index=True, default=None)
+    dedupe_key: Mapped[str | None] = mapped_column(
+        String(100), unique=True, index=True, default=None
+    )
 
     transaction: Mapped[Transaction] = relationship(back_populates="tasks")

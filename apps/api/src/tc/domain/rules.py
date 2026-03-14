@@ -5,6 +5,7 @@ Rules are defined as data (dataclasses) in a registry list.
 The engine evaluates triggers and creates follow-up tasks
 with idempotent dedupe keys to prevent duplicates on re-runs.
 """
+
 from __future__ import annotations
 
 import logging
@@ -89,11 +90,7 @@ def evaluate_rules(
         dedupe_key = build_dedupe_key(trigger, source_task.id)
 
         # skip if a task with this key already exists
-        exists = (
-            db.query(Task.id)
-            .filter(Task.dedupe_key == dedupe_key)
-            .first()
-        )
+        exists = db.query(Task.id).filter(Task.dedupe_key == dedupe_key).first()
         if exists:
             logger.debug("Rule '%s' skipped — dedupe key '%s' exists", rule.trigger, dedupe_key)
             continue
