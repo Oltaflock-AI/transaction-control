@@ -110,18 +110,18 @@ def evaluate_rules(
             assignee_id = _resolve_coordinator(db, source_task.transaction_id)
 
         try:
-            new_task = create_task(
-                db,
-                transaction_id=source_task.transaction_id,
-                title=title,
-                assignee_id=assignee_id,
-                dedupe_key=dedupe_key,
-                category=rule.task_category,
-                severity=rule.task_severity,
-                commit=False,
-            )
+            with db.begin_nested():
+                new_task = create_task(
+                    db,
+                    transaction_id=source_task.transaction_id,
+                    title=title,
+                    assignee_id=assignee_id,
+                    dedupe_key=dedupe_key,
+                    category=rule.task_category,
+                    severity=rule.task_severity,
+                    commit=False,
+                )
         except IntegrityError:
-            db.rollback()
             logger.debug(
                 "Rule '%s' skipped — dedupe key '%s' was inserted concurrently",
                 rule.name,

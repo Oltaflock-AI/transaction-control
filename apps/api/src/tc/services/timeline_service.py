@@ -77,9 +77,24 @@ def get_timeline_items(db: Session, transaction_id: uuid.UUID) -> list[TimelineI
 
 
 def mark_item_complete(db: Session, item_id: uuid.UUID) -> TimelineItem | None:
+    """Mark a timeline item complete. Atomic update to avoid concurrent overwrite."""
+    from sqlalchemy import update
+
     item = db.query(TimelineItem).filter(TimelineItem.id == item_id).first()
-    if item and item.completed_at is None:
-        item.completed_at = datetime.now(UTC)
-        db.commit()
+    if item is None:
+        return None
+    now = datetime.now(UTC)
+    result = db.execute(
+        update(TimelineItem)
+        .where(
+            TimelineItem.id == item_id,
+            TimelineItem.completed_at.is_(None),
+        )
+        .values(completed_at=now)
+    )
+    if result.rowcount == 0:
         db.refresh(item)
+        return item
+    db.commit()
+    db.refresh(item)
     return item
