@@ -112,6 +112,17 @@ def update_status(task_id: uuid.UUID, body: TaskStatusUpdate, user: CurrentUser,
 
     try:
         task = update_task_status(db, task_id=task_id, new_status=body.status)
+        
+        # Recompute health score and save it to the transaction
+        from tc.services.health_service import compute_health_score
+        health = compute_health_score(db, task.transaction_id)
+        
+        txn = get_transaction(db, task.transaction_id)
+        if txn:
+            txn.health_score = health["score"]
+            db.commit()
+            db.refresh(txn)
+
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
