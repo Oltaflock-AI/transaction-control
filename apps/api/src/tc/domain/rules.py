@@ -19,6 +19,9 @@ from tc.db.models.task import Task
 
 logger = logging.getLogger(__name__)
 
+# Task.title column limit (String(255))
+TASK_TITLE_MAX_LEN = 255
+
 
 @dataclass(frozen=True)
 class RuleDef:
@@ -63,6 +66,17 @@ def build_dedupe_key(rule_name: str, trigger: str, source_task_id: uuid.UUID) ->
     return f"rule:{rule_name}:{trigger}:{source_task_id}"
 
 
+def _is_dedupe_key_violation(exc: IntegrityError) -> bool:
+    """True if the IntegrityError is a unique violation on the task dedupe_key constraint."""
+    orig = getattr(exc, "orig", None)
+    if orig is None:
+        return False
+    if getattr(orig, "pgcode", None) != "23505":
+        return False
+    constraint_name = getattr(getattr(orig, "diag", None), "constraint_name", None) or ""
+    return "dedupe_key" in constraint_name
+
+
 def _resolve_coordinator(db: Session, transaction_id: uuid.UUID) -> uuid.UUID | None:
     """Find the first admin member of the transaction's org to act as coordinator."""
     from tc.db.models.membership import Membership
@@ -104,6 +118,8 @@ def evaluate_rules(
             continue
 
         title = rule.task_title_template.format(task_title=source_task.title)
+        if len(title) > TASK_TITLE_MAX_LEN:
+            title = title[:TASK_TITLE_MAX_LEN]
 
         assignee_id = None
         if rule.assign_to_coordinator:
@@ -121,13 +137,15 @@ def evaluate_rules(
                     severity=rule.task_severity,
                     commit=False,
                 )
-        except IntegrityError:
-            logger.debug(
-                "Rule '%s' skipped — dedupe key '%s' was inserted concurrently",
-                rule.name,
-                dedupe_key,
-            )
-            continue
+        except IntegrityError as e:
+            if _is_dedupe_key_violation(e):
+                logger.debug(
+                    "Rule '%s' skipped — dedupe key '%s' was inserted concurrently",
+                    rule.name,
+                    dedupe_key,
+                )
+                continue
+            raise
 
         logger.info(
             "Rule '%s' created task %s (dedupe=%s)",

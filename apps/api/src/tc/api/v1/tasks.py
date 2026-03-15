@@ -131,7 +131,12 @@ def assign(task_id: uuid.UUID, body: TaskAssign, user: CurrentUser, db: DB):
     """Assign a task to a user."""
     task = _check_task_org_access(db, user, task_id)
     txn = get_transaction(db, task.transaction_id)
-    if txn is not None and not user_belongs_to_org(db, body.assignee_id, txn.org_id):
+    if txn is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Transaction no longer exists; please retry",
+        )
+    if not user_belongs_to_org(db, body.assignee_id, txn.org_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Assignee must be a member of the organisation",
