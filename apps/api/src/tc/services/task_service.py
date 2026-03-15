@@ -10,6 +10,14 @@ from tc.domain.enums import TaskStatus
 from tc.services.audit_service import create_audit_event
 
 
+class TaskNotFoundError(ValueError):
+    """Raised when a task lookup by id fails."""
+
+
+class TransactionNotFoundError(ValueError):
+    """Raised when a transaction is missing (e.g. deleted) during an operation."""
+
+
 def create_task(
     db: Session,
     *,
@@ -18,6 +26,10 @@ def create_task(
     description: str | None = None,
     assignee_id: uuid.UUID | None = None,
     due_at: datetime | None = None,
+    dedupe_key: str | None = None,
+    category: str | None = None,
+    severity: str | None = None,
+    commit: bool = True,
 ) -> Task:
     """Create a new task on a transaction and log an audit event."""
     from tc.db.models.transaction import Transaction
@@ -29,6 +41,9 @@ def create_task(
         assignee_id=assignee_id,
         due_at=due_at,
         status=TaskStatus.todo,
+        dedupe_key=dedupe_key,
+        category=category,
+        severity=severity,
     )
     db.add(task)
     db.flush()
@@ -44,8 +59,9 @@ def create_task(
         entity_id=task.id,
         detail=f"Task '{title}' created",
     )
-    db.commit()
-    db.refresh(task)
+    if commit:
+        db.commit()
+        db.refresh(task)
     return task
 
 
@@ -62,8 +78,13 @@ def update_task_status(
     if task is None:
         raise ValueError(f"Task {task_id} not found")
 
+    try:
+        validated_status = TaskStatus(new_status)
+    except ValueError as exc:
+        raise ValueError(f"Invalid task status: {new_status}") from exc
+
     old_status = task.status
-    task.status = new_status
+    task.status = validated_status
     db.flush()
 
     txn = db.query(Transaction).filter(Transaction.id == task.transaction_id).first()
@@ -93,14 +114,14 @@ def assign_task(
 
     task = db.query(Task).filter(Task.id == task_id).first()
     if task is None:
-        raise ValueError(f"Task {task_id} not found")
+        raise TaskNotFoundError(f"Task {task_id} not found")
 
     task.assignee_id = assignee_id
     db.flush()
 
     txn = db.query(Transaction).filter(Transaction.id == task.transaction_id).first()
     if txn is None:
-        raise ValueError(f"Transaction {task.transaction_id} not found")
+        raise TransactionNotFoundError(f"Transaction {task.transaction_id} not found")
     create_audit_event(
         db,
         org_id=txn.org_id,
@@ -125,5 +146,15 @@ def list_tasks_by_transaction(db: Session, transaction_id: uuid.UUID) -> list[Ta
 
 
 def list_tasks_by_user(db: Session, user_id: uuid.UUID) -> list[Task]:
-    """Return all tasks assigned to a user across all orgs ('my tasks')."""
-    return db.query(Task).filter(Task.assignee_id == user_id).order_by(Task.due_at).all()
+    """Return all tasks assigned to a user, scoped to orgs they belong to."""
+    from tc.db.models.membership import Membership
+    from tc.db.models.transaction import Transaction
+
+    user_org_ids = db.query(Membership.org_id).filter(Membership.user_id == user_id).subquery()
+    return (
+        db.query(Task)
+        .join(Transaction, Task.transaction_id == Transaction.id)
+        .filter(Task.assignee_id == user_id, Transaction.org_id.in_(user_org_ids))
+        .order_by(Task.due_at)
+        .all()
+    )

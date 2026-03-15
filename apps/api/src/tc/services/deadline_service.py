@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 from tc.db.models.event_log import EventLog
 from tc.db.models.task import Task
 from tc.domain.enums import TaskStatus
+from tc.domain.rules import evaluate_rules
 from tc.services.audit_service import create_audit_event
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,7 @@ def check_deadlines(db: Session) -> dict:
             "transaction_id": str(task.transaction_id),
             "old_status": old_status,
             "new_status": TaskStatus.overdue,
+            "severity": task.severity or "medium",
             "due_at": task.due_at.isoformat() if task.due_at else None,
             "marked_overdue_at": now.isoformat(),
         }
@@ -69,6 +71,8 @@ def check_deadlines(db: Session) -> dict:
             detail=detail,
         )
 
+        evaluate_rules(db, trigger="task.overdue", source_task=task)
+
     due_soon_tasks: list[Task] = (
         db.query(Task)
         .options(joinedload(Task.transaction))
@@ -93,20 +97,35 @@ def check_deadlines(db: Session) -> dict:
             payload = {
                 "task_id": str(task.id),
                 "task_title": task.title,
+                "severity": task.severity or "medium",
                 "due_at": task.due_at.isoformat(),
                 "hours_remaining": round(
                     (task.due_at.astimezone(UTC) - now).total_seconds() / 3600, 1
                 ),
             }
+            detail = json.dumps(payload)
             db.add(
                 EventLog(
                     transaction_id=task.transaction_id,
                     event_type="task.due_soon",
                     entity_type="task",
                     entity_id=task.id,
-                    detail=json.dumps(payload),
+                    detail=detail,
                 )
             )
+
+            create_audit_event(
+                db,
+                org_id=task.transaction.org_id,
+                action="task.due_soon",
+                entity_type="task",
+                entity_id=task.id,
+                actor_id=None,
+                detail=detail,
+            )
+
+            evaluate_rules(db, trigger="task.due_soon", source_task=task)
+
             due_soon_count += 1
 
     db.commit()

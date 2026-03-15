@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 from tc.core.security import CurrentUser
 from tc.db.session import get_db
 from tc.services.task_service import (
+    TaskNotFoundError,
+    TransactionNotFoundError,
     assign_task,
     create_task,
     get_task,
@@ -86,6 +88,11 @@ def create_task_endpoint(transaction_id: uuid.UUID, body: TaskCreate, user: Curr
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not a member of this organisation",
         )
+    if body.assignee_id is not None and not user_belongs_to_org(db, body.assignee_id, txn.org_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Assignee must be a member of the organisation",
+        )
 
     task = create_task(
         db,
@@ -113,7 +120,10 @@ def update_status(task_id: uuid.UUID, body: TaskStatusUpdate, user: CurrentUser,
     try:
         task = update_task_status(db, task_id=task_id, new_status=body.status)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        msg = str(exc)
+        if "Invalid task status" in msg:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg) from exc
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg) from exc
 
     return _task_to_dict(task)
 
@@ -123,7 +133,12 @@ def assign(task_id: uuid.UUID, body: TaskAssign, user: CurrentUser, db: DB):
     """Assign a task to a user."""
     task = _check_task_org_access(db, user, task_id)
     txn = get_transaction(db, task.transaction_id)
-    if txn is not None and not user_belongs_to_org(db, body.assignee_id, txn.org_id):
+    if txn is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Transaction no longer exists; please retry",
+        )
+    if not user_belongs_to_org(db, body.assignee_id, txn.org_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Assignee must be a member of the organisation",
@@ -131,8 +146,13 @@ def assign(task_id: uuid.UUID, body: TaskAssign, user: CurrentUser, db: DB):
 
     try:
         task = assign_task(db, task_id=task_id, assignee_id=body.assignee_id)
-    except ValueError as exc:
+    except TaskNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except TransactionNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Transaction no longer exists; please retry",
+        ) from exc
 
     return _task_to_dict(task)
 
