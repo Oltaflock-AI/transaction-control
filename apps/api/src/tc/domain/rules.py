@@ -88,6 +88,7 @@ def _resolve_coordinator(db: Session, transaction_id: uuid.UUID) -> uuid.UUID | 
     membership = (
         db.query(Membership)
         .filter(Membership.org_id == txn.org_id, Membership.role == "admin")
+        .order_by(Membership.user_id.asc())
         .first()
     )
     return membership.user_id if membership else None

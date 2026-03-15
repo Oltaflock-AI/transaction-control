@@ -10,6 +10,14 @@ from tc.domain.enums import TaskStatus
 from tc.services.audit_service import create_audit_event
 
 
+class TaskNotFoundError(ValueError):
+    """Raised when a task lookup by id fails."""
+
+
+class TransactionNotFoundError(ValueError):
+    """Raised when a transaction is missing (e.g. deleted) during an operation."""
+
+
 def create_task(
     db: Session,
     *,
@@ -106,14 +114,14 @@ def assign_task(
 
     task = db.query(Task).filter(Task.id == task_id).first()
     if task is None:
-        raise ValueError(f"Task {task_id} not found")
+        raise TaskNotFoundError(f"Task {task_id} not found")
 
     task.assignee_id = assignee_id
     db.flush()
 
     txn = db.query(Transaction).filter(Transaction.id == task.transaction_id).first()
     if txn is None:
-        raise ValueError(f"Transaction {task.transaction_id} not found")
+        raise TransactionNotFoundError(f"Transaction {task.transaction_id} not found")
     create_audit_event(
         db,
         org_id=txn.org_id,

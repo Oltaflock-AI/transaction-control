@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 from tc.core.security import CurrentUser
 from tc.db.session import get_db
 from tc.services.task_service import (
+    TaskNotFoundError,
+    TransactionNotFoundError,
     assign_task,
     create_task,
     get_task,
@@ -144,8 +146,13 @@ def assign(task_id: uuid.UUID, body: TaskAssign, user: CurrentUser, db: DB):
 
     try:
         task = assign_task(db, task_id=task_id, assignee_id=body.assignee_id)
-    except ValueError as exc:
+    except TaskNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except TransactionNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Transaction no longer exists; please retry",
+        ) from exc
 
     return _task_to_dict(task)
 
