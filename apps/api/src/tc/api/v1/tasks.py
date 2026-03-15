@@ -86,6 +86,11 @@ def create_task_endpoint(transaction_id: uuid.UUID, body: TaskCreate, user: Curr
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not a member of this organisation",
         )
+    if body.assignee_id is not None and not user_belongs_to_org(db, body.assignee_id, txn.org_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Assignee must be a member of the organisation",
+        )
 
     task = create_task(
         db,

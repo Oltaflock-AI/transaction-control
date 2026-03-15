@@ -103,14 +103,25 @@ def check_deadlines(db: Session) -> dict:
                     (task.due_at.astimezone(UTC) - now).total_seconds() / 3600, 1
                 ),
             }
+            detail = json.dumps(payload)
             db.add(
                 EventLog(
                     transaction_id=task.transaction_id,
                     event_type="task.due_soon",
                     entity_type="task",
                     entity_id=task.id,
-                    detail=json.dumps(payload),
+                    detail=detail,
                 )
+            )
+
+            create_audit_event(
+                db,
+                org_id=task.transaction.org_id,
+                action="task.due_soon",
+                entity_type="task",
+                entity_id=task.id,
+                actor_id=None,
+                detail=detail,
             )
 
             evaluate_rules(db, trigger="task.due_soon", source_task=task)

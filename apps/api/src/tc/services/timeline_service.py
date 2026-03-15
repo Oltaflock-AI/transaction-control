@@ -17,9 +17,11 @@ TEMPLATE_FILE = Path(__file__).parent.parent / "core" / "timeline_templates.json
 
 def load_template(template_name: str) -> list[dict]:
     """Load a timeline template by name from the JSON file."""
-    with open(TEMPLATE_FILE) as f:
+    with open(TEMPLATE_FILE, encoding="utf-8") as f:
         templates = json.load(f)
-    return templates.get(template_name, [])
+    if template_name not in templates:
+        raise ValueError(f"Unknown timeline template: {template_name}")
+    return templates[template_name]
 
 
 def generate_default_timeline(
@@ -66,12 +68,17 @@ def generate_default_timeline(
 
 
 def get_timeline_items(db: Session, transaction_id: uuid.UUID) -> list[TimelineItem]:
-    return db.query(TimelineItem).filter(TimelineItem.transaction_id == transaction_id).all()
+    return (
+        db.query(TimelineItem)
+        .filter(TimelineItem.transaction_id == transaction_id)
+        .order_by(TimelineItem.due_at.asc(), TimelineItem.id.asc())
+        .all()
+    )
 
 
 def mark_item_complete(db: Session, item_id: uuid.UUID) -> TimelineItem | None:
     item = db.query(TimelineItem).filter(TimelineItem.id == item_id).first()
-    if item:
+    if item and item.completed_at is None:
         item.completed_at = datetime.now(UTC)
         db.commit()
         db.refresh(item)
