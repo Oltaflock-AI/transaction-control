@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from tc.core.security import AdminUser, require_role
@@ -21,23 +22,30 @@ DB = Annotated[Session, Depends(get_db)]
 
 @router.get("")
 def list_org_audit(
+    org_id: uuid.UUID,
     db: DB,
     user: AdminUser,
-    entity_type: str | None = Query(None, description="Filter by entity type, e.g. 'task'"),
-    action: str | None = Query(None, description="Filter by action, e.g. 'task.marked_overdue'"),
-    page: int = Query(1, ge=1, description="Page number (1-based)"),
-    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    entity_type: str | None = None,
+    action: str | None = None,
+    page: int = 1,
+    page_size: int = 20,
 ):
     """Org-wide audit feed — all events across all deals for the user's org."""
     membership = (
         db.query(Membership)
-        .filter(Membership.user_id == user.id, Membership.role == "admin")
+        .filter(
+            Membership.user_id == user.id,
+            Membership.role == "admin",
+            Membership.org_id == org_id,
+        )
         .first()
     )
+    if membership is None:
+        raise HTTPException(status_code=403, detail="Not an admin of this organisation")
 
     events, total = list_audit_events_for_org(
         db,
-        org_id=membership.org_id,
+        org_id=org_id,
         entity_type=entity_type,
         action=action,
         page=page,

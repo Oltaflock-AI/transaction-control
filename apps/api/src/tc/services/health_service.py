@@ -45,11 +45,17 @@ def compute_health_score(db: Session, transaction_id: uuid.UUID) -> dict:
     reasons: list[str] = []
 
     for task in tasks:
-        if task.status == TaskStatus.overdue:
+        is_overdue = task.status == TaskStatus.overdue or (
+            task.due_at is not None
+            and task.due_at <= now
+            and task.status in (TaskStatus.todo, TaskStatus.in_progress)
+        )
+        if is_overdue:
             overdue_count += 1
             overdue_weighted += _weight(task.severity)
             if (task.severity or TaskSeverity.medium) == TaskSeverity.critical:
                 has_critical_overdue = True
+            continue
 
         if (
             task.due_at is not None

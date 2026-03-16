@@ -70,7 +70,7 @@ def list_audit_events_for_org(
     total = query.count()
 
     events = (
-        query.order_by(AuditEvent.created_at.desc())
+        query.order_by(AuditEvent.created_at.desc(), AuditEvent.id.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
         .all()
