@@ -19,6 +19,7 @@ from tc.services.task_service import (
     list_tasks_by_user,
     update_task_status,
 )
+from tc.db.models.user import User
 from tc.services.transaction_service import get_transaction, user_belongs_to_org
 
 router = APIRouter(tags=["tasks"])
@@ -83,8 +84,6 @@ def _check_task_org_access(db: Session, user, task_id: uuid.UUID):
         )
     return task
 
-
-from tc.db.models.user import User
 
 @router.post(
     "/transactions/{transaction_id}/tasks",
@@ -161,9 +160,15 @@ def update_status(task_id: uuid.UUID, body: TaskStatusUpdate, user: CurrentUser,
             db.refresh(txn)
 
     except TaskNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found") from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Task not found"
+        ) from exc
     except TransactionNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found") from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Transaction not found"
+        ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -177,7 +182,7 @@ def assign(task_id: uuid.UUID, body: TaskAssign, user: CurrentUser, db: DB):
     txn = get_transaction(db, task.transaction_id)
     if txn is None:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_409_CONFLICT,
             detail="Transaction no longer exists; please retry",
         )
     assignee = db.get(User, body.assignee_id)
