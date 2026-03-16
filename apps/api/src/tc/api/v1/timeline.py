@@ -34,7 +34,11 @@ def complete_timeline_item(item_id: uuid.UUID, user: CurrentUser, db: DB):
     # Minimal lookup for transaction_id without revealing timeline item existence
     item_txn = db.query(TimelineItem.transaction_id).filter(TimelineItem.id == item_id).first()
     
-    if not item_txn or not transaction_service.user_has_access_to_transaction(db, user.id, item_txn[0]):
+    if not item_txn or not transaction_service.user_has_access_to_transaction(
+        db,
+        user.id,
+        item_txn[0]
+        ):
         raise HTTPException(status_code=404, detail="Timeline item not found")
 
     return timeline_service.mark_item_complete(db, item_id)

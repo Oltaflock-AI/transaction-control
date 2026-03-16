@@ -4,11 +4,11 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, Enum
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from tc.db.base import Base
-from tc.domain.enums import TaskStatus, TaskSeverity
+from tc.domain.enums import TaskSeverity, TaskStatus
 
 if TYPE_CHECKING:
     from tc.db.models.transaction import Transaction

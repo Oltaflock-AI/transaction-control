@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -9,6 +9,7 @@ from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from tc.core.security import CurrentUser
+from tc.db.models.user import User
 from tc.db.session import get_db
 from tc.services.task_service import (
     TaskNotFoundError,
@@ -19,7 +20,6 @@ from tc.services.task_service import (
     list_tasks_by_user,
     update_task_status,
 )
-from tc.db.models.user import User
 from tc.services.transaction_service import get_transaction, user_belongs_to_org
 
 router = APIRouter(tags=["tasks"])
@@ -38,7 +38,7 @@ class TaskCreate(BaseModel):
     def validate_due_at(cls, v: datetime | None) -> datetime | None:
         if v is not None:
             if v.tzinfo is None:
-                return v.astimezone(timezone.utc)
+                return v.astimezone(UTC)
         return v
 
 
