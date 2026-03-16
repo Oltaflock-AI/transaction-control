@@ -46,9 +46,38 @@ def list_user_transactions(db: Session, user_id: uuid.UUID) -> list[Transaction]
 
 
 def user_belongs_to_org(db: Session, user_id: uuid.UUID, org_id: uuid.UUID) -> bool:
+    """
+    Determine whether a user is a member of a given organization.
+    
+    Parameters:
+        user_id (uuid.UUID): ID of the user to check.
+        org_id (uuid.UUID): ID of the organization to check.
+    
+    Returns:
+        bool: `True` if a Membership linking the user and organization exists, `False` otherwise.
+    """
     return (
         db.query(Membership)
         .filter(Membership.user_id == user_id, Membership.org_id == org_id)
         .first()
         is not None
     )
+
+
+def user_has_access_to_transaction(
+    db: Session, user_id: uuid.UUID, transaction_id: uuid.UUID
+) -> bool:
+    """
+    Checks whether a user has access to a transaction by verifying membership in the transaction's organization.
+    
+    Parameters:
+        user_id (uuid.UUID): ID of the user to check.
+        transaction_id (uuid.UUID): ID of the transaction to check.
+    
+    Returns:
+        True if the transaction exists and the user belongs to its organization, False otherwise.
+    """
+    txn = get_transaction(db, transaction_id)
+    if not txn:
+        return False
+    return user_belongs_to_org(db, user_id, txn.org_id)
