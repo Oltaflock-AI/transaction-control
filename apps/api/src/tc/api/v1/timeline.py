@@ -19,6 +19,10 @@ def list_timeline_items(transaction_id: uuid.UUID, user: CurrentUser, db: DB):
     """
     fetch specific transaction timeline items.
     """
+    txn = transaction_service.get_transaction(db, transaction_id)
+    if txn is None:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+        
     # Org membership check
     if not transaction_service.user_has_access_to_transaction(db, user.id, transaction_id):
         raise HTTPException(status_code=403, detail="Not a member of this organisation")

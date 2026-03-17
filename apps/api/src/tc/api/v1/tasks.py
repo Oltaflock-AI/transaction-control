@@ -132,7 +132,6 @@ def create_task_endpoint(transaction_id: uuid.UUID, body: TaskCreate, user: Curr
     return _task_to_dict(task)
 
 
-
 @router.get("/tasks/mine")
 def my_tasks(user: CurrentUser, db: DB):
     """List all tasks assigned to the current user across all orgs."""
@@ -160,14 +159,10 @@ def update_status(task_id: uuid.UUID, body: TaskStatusUpdate, user: CurrentUser,
             db.refresh(txn)
 
     except TaskNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="Task not found"
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found") from exc
     except TransactionNotFoundError as exc:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="Transaction not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found"
         ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
