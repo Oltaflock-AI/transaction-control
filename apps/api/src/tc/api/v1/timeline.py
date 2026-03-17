@@ -43,4 +43,7 @@ def complete_timeline_item(item_id: uuid.UUID, user: CurrentUser, db: DB):
     ):
         raise HTTPException(status_code=404, detail="Timeline item not found")
 
-    return timeline_service.mark_item_complete(db, item_id)
+    completed = timeline_service.mark_item_complete(db, item_id)
+    if completed is None:
+        raise HTTPException(status_code=404, detail="Timeline item not found")
+    return completed
