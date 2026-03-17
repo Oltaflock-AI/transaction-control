@@ -45,9 +45,13 @@ def compute_health_score(db: Session, transaction_id: uuid.UUID) -> dict:
     reasons: list[str] = []
 
     for task in tasks:
+        due_at = task.due_at
+        if due_at is not None and due_at.tzinfo is None:
+            due_at = due_at.replace(tzinfo=UTC)
+
         is_overdue = task.status == TaskStatus.overdue or (
-            task.due_at is not None
-            and task.due_at <= now
+            due_at is not None
+            and due_at <= now
             and task.status in (TaskStatus.todo, TaskStatus.in_progress)
         )
         if is_overdue:
@@ -58,9 +62,9 @@ def compute_health_score(db: Session, transaction_id: uuid.UUID) -> dict:
             continue
 
         if (
-            task.due_at is not None
-            and task.due_at > now
-            and task.due_at <= due_soon_threshold
+            due_at is not None
+            and due_at > now
+            and due_at <= due_soon_threshold
             and task.status in (TaskStatus.todo, TaskStatus.in_progress)
         ):
             due_soon_count += 1

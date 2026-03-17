@@ -71,10 +71,24 @@ def _is_dedupe_key_violation(exc: IntegrityError) -> bool:
     orig = getattr(exc, "orig", None)
     if orig is None:
         return False
-    if getattr(orig, "pgcode", None) != "23505":
-        return False
-    constraint_name = getattr(getattr(orig, "diag", None), "constraint_name", None) or ""
-    return "dedupe_key" in constraint_name
+
+    # Postgres-specific checks
+    pgcode = getattr(orig, "pgcode", None)
+    if pgcode == "23505":
+        constraint_name = getattr(getattr(orig, "diag", None), "constraint_name", None) or ""
+        if "dedupe_key" in constraint_name:
+            return True
+
+    # Generic generic DBAPI text / args heuristics for SQLite etc.
+    exc_str = str(exc).lower()
+    args_str = " ".join(str(a).lower() for a in getattr(orig, "args", [])).lower()
+    combined_str = f"{exc_str} {args_str}"
+
+    if "dedupe_key" in combined_str:
+        if "unique" in combined_str or "constraint" in combined_str:
+            return True
+
+    return False
 
 
 def _resolve_coordinator(db: Session, transaction_id: uuid.UUID) -> uuid.UUID | None:

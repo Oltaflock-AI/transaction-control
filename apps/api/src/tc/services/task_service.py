@@ -34,6 +34,10 @@ def create_task(
     """Create a new task on a transaction and log an audit event."""
     from tc.db.models.transaction import Transaction
 
+    txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    if txn is None:
+        raise TransactionNotFoundError(f"Transaction {transaction_id} not found")
+
     task = Task(
         transaction_id=transaction_id,
         title=title,
@@ -47,10 +51,6 @@ def create_task(
     )
     db.add(task)
     db.flush()
-
-    txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
-    if txn is None:
-        raise ValueError(f"Transaction {transaction_id} not found")
     create_audit_event(
         db,
         org_id=txn.org_id,
@@ -76,7 +76,7 @@ def update_task_status(
 
     task = db.query(Task).filter(Task.id == task_id).first()
     if task is None:
-        raise ValueError(f"Task {task_id} not found")
+        raise TaskNotFoundError(f"Task {task_id} not found")
 
     try:
         validated_status = TaskStatus(new_status)
@@ -89,7 +89,7 @@ def update_task_status(
 
     txn = db.query(Transaction).filter(Transaction.id == task.transaction_id).first()
     if txn is None:
-        raise ValueError(f"Transaction {task.transaction_id} not found")
+        raise TransactionNotFoundError(f"Transaction {task.transaction_id} not found")
     create_audit_event(
         db,
         org_id=txn.org_id,

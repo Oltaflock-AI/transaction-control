@@ -4,11 +4,11 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from tc.db.base import Base
-from tc.domain.enums import TaskStatus
+from tc.domain.enums import TaskSeverity, TaskStatus
 
 if TYPE_CHECKING:
     from tc.db.models.transaction import Transaction
@@ -27,7 +27,8 @@ class Task(Base):
     due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     offset_days: Mapped[int | None] = mapped_column(Integer, default=None)
     category: Mapped[str | None] = mapped_column(String(100), default=None)
-    severity: Mapped[str | None] = mapped_column(String(20), default=None)
+
+    severity: Mapped[TaskSeverity | None] = mapped_column(Enum(TaskSeverity), default=None)
     dedupe_key: Mapped[str | None] = mapped_column(
         String(100), unique=True, index=True, default=None
     )

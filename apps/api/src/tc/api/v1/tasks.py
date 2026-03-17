@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from tc.core.security import CurrentUser
+from tc.db.models.user import User
 from tc.db.session import get_db
 from tc.services.task_service import (
     TaskNotFoundError,
@@ -31,6 +32,14 @@ class TaskCreate(BaseModel):
     description: str | None = None
     assignee_id: uuid.UUID | None = None
     due_at: datetime | None = None
+
+    @field_validator("due_at")
+    @classmethod
+    def validate_due_at(cls, v: datetime | None) -> datetime | None:
+        if v is not None:
+            if v.tzinfo is None:
+                return v.astimezone(UTC)
+        return v
 
 
 class TaskStatusUpdate(BaseModel):
@@ -63,7 +72,12 @@ def _check_task_org_access(db: Session, user, task_id: uuid.UUID):
             detail="Task not found",
         )
     txn = get_transaction(db, task.transaction_id)
-    if txn is None or not user_belongs_to_org(db, user.id, txn.org_id):
+    if txn is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found",
+        )
+    if not user_belongs_to_org(db, user.id, txn.org_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not a member of this organisation",
@@ -88,20 +102,33 @@ def create_task_endpoint(transaction_id: uuid.UUID, body: TaskCreate, user: Curr
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not a member of this organisation",
         )
-    if body.assignee_id is not None and not user_belongs_to_org(db, body.assignee_id, txn.org_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Assignee must be a member of the organisation",
-        )
+    if body.assignee_id is not None:
+        assignee = db.get(User, body.assignee_id)
+        if not assignee:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Assignee not found",
+            )
+        if not user_belongs_to_org(db, body.assignee_id, txn.org_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Assignee must be a member of the organisation",
+            )
 
-    task = create_task(
-        db,
-        transaction_id=transaction_id,
-        title=body.title,
-        description=body.description,
-        assignee_id=body.assignee_id,
-        due_at=body.due_at,
-    )
+    try:
+        task = create_task(
+            db,
+            transaction_id=transaction_id,
+            title=body.title,
+            description=body.description,
+            assignee_id=body.assignee_id,
+            due_at=body.due_at,
+        )
+    except TransactionNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found",
+        ) from exc
     return _task_to_dict(task)
 
 
@@ -119,11 +146,26 @@ def update_status(task_id: uuid.UUID, body: TaskStatusUpdate, user: CurrentUser,
 
     try:
         task = update_task_status(db, task_id=task_id, new_status=body.status)
+
+        # Recompute health score and save it to the transaction
+        from tc.services.health_service import compute_health_score
+
+        health = compute_health_score(db, task.transaction_id)
+
+        txn = get_transaction(db, task.transaction_id)
+        if txn:
+            txn.health_score = health["score"]
+            db.commit()
+            db.refresh(txn)
+
+    except TaskNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found") from exc
+    except TransactionNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found"
+        ) from exc
     except ValueError as exc:
-        msg = str(exc)
-        if "Invalid task status" in msg:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg) from exc
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg) from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     return _task_to_dict(task)
 
@@ -135,12 +177,18 @@ def assign(task_id: uuid.UUID, body: TaskAssign, user: CurrentUser, db: DB):
     txn = get_transaction(db, task.transaction_id)
     if txn is None:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_409_CONFLICT,
             detail="Transaction no longer exists; please retry",
+        )
+    assignee = db.get(User, body.assignee_id)
+    if not assignee:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assignee not found",
         )
     if not user_belongs_to_org(db, body.assignee_id, txn.org_id):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Assignee must be a member of the organisation",
         )
 
