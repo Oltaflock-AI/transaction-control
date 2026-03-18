@@ -14,7 +14,7 @@ def test_list_org_audit(db, client, auth_header, seed_user):
         entity_type="task",
         entity_id=uuid.uuid4(),
         actor_id=user.id,
-        detail="Task 1 created"
+        detail="Task 1 created",
     )
     event2 = AuditEvent(
         org_id=org.id,
@@ -22,7 +22,7 @@ def test_list_org_audit(db, client, auth_header, seed_user):
         entity_type="task",
         entity_id=uuid.uuid4(),
         actor_id=None,
-        detail="Task 2 overdue"
+        detail="Task 2 overdue",
     )
     db.add_all([event1, event2])
     db.commit()
@@ -45,14 +45,14 @@ def test_list_org_audit_filtering(db, client, auth_header, seed_user):
         action="transaction.created",
         entity_type="transaction",
         entity_id=uuid.uuid4(),
-        detail="Txn created"
+        detail="Txn created",
     )
     event2 = AuditEvent(
         org_id=org.id,
         action="task.marked_overdue",
         entity_type="task",
         entity_id=uuid.uuid4(),
-        detail="Task overdue"
+        detail="Task overdue",
     )
     db.add_all([event1, event2])
     db.commit()
@@ -63,7 +63,8 @@ def test_list_org_audit_filtering(db, client, auth_header, seed_user):
     assert data["total"] == 1
     assert data["items"][0]["action"] == "task.marked_overdue"
 
-    r2 = client.get(f"/api/v1/audit?org_id={str(org.id)}&action=transaction.created", headers=auth_header)
+    url2 = f"/api/v1/audit?org_id={str(org.id)}&action=transaction.created"
+    r2 = client.get(url2, headers=auth_header)
     assert r2.status_code == 200
     data2 = r2.json()
     assert data2["total"] == 1

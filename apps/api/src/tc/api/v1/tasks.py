@@ -38,7 +38,7 @@ class TaskCreate(BaseModel):
     def validate_due_at(cls, v: datetime | None) -> datetime | None:
         if v is not None:
             if v.tzinfo is None:
-                return v.astimezone(UTC)
+                return v.replace(tzinfo=UTC)
         return v
 
 

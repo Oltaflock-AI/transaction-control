@@ -11,14 +11,10 @@ from tc.domain.rules import evaluate_rules, build_dedupe_key
 def test_evaluate_rules_due_soon(db, seed_user):
     user, org = seed_user
     txn = Transaction(
-        id=uuid.uuid4(),
-        org_id=org.id,
-        title="123 Test St",
-        status="active",
-        health_score="GREEN"
+        id=uuid.uuid4(), org_id=org.id, title="123 Test St", status="active", health_score="GREEN"
     )
     db.add(txn)
-    
+
     task = Task(
         id=uuid.uuid4(),
         transaction_id=txn.id,
@@ -43,14 +39,10 @@ def test_evaluate_rules_due_soon(db, seed_user):
 def test_evaluate_rules_overdue_escalation_assigns_coordinator(db, seed_user):
     user, org = seed_user
     txn = Transaction(
-        id=uuid.uuid4(),
-        org_id=org.id,
-        title="123 Test St",
-        status="active",
-        health_score="GREEN"
+        id=uuid.uuid4(), org_id=org.id, title="123 Test St", status="active", health_score="GREEN"
     )
     db.add(txn)
-    
+
     task = Task(
         id=uuid.uuid4(),
         transaction_id=txn.id,
@@ -75,14 +67,10 @@ def test_evaluate_rules_overdue_escalation_assigns_coordinator(db, seed_user):
 def test_evaluate_rules_idempotent(db, seed_user):
     user, org = seed_user
     txn = Transaction(
-        id=uuid.uuid4(),
-        org_id=org.id,
-        title="123 Test St",
-        status="active",
-        health_score="GREEN"
+        id=uuid.uuid4(), org_id=org.id, title="123 Test St", status="active", health_score="GREEN"
     )
     db.add(txn)
-    
+
     task = Task(
         id=uuid.uuid4(),
         transaction_id=txn.id,
@@ -98,4 +86,3 @@ def test_evaluate_rules_idempotent(db, seed_user):
 
     created_tasks_2 = evaluate_rules(db, trigger="task.due_soon", source_task=task)
     assert len(created_tasks_2) == 0
-
