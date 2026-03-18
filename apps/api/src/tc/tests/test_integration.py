@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import time
 import uuid
 from datetime import UTC, datetime, timedelta
-
 from unittest.mock import patch
+
 from tc.db.models.task import Task
-from tc.db.models.transaction import Transaction
 
 
 @patch("tc.workers.tasks.generate_timeline.delay")
@@ -48,7 +46,8 @@ def test_week2_end_to_end_integration(mock_delay, db, client, auth_header, seed_
     r_deadline = client.post("/api/v1/admin/check-deadlines", headers=auth_header)
     assert r_deadline.status_code == 200
 
-    # 5. Verify: task marked overdue, event_log created, audit_event created, rules engine created escalation task, RED health
+    # 5. Verify: task marked overdue, event_log created, audit_event created,
+    # rules engine created escalation task, RED health
     r_tasks_after = client.get(f"/api/v1/transactions/{txn_id}/tasks", headers=auth_header)
     tasks_after = r_tasks_after.json()
 

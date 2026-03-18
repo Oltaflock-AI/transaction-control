@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import uuid
 
-from tc.db.models.transaction import Transaction
 from tc.db.models.event_log import EventLog
+from tc.db.models.transaction import Transaction
 
 
 def test_list_events_for_transaction(db, client, auth_header, seed_user):

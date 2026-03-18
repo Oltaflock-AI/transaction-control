@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 
 from tc.db.models.task import Task
 from tc.db.models.transaction import Transaction
-from tc.domain.rules import evaluate_rules, build_dedupe_key
+from tc.domain.rules import build_dedupe_key, evaluate_rules
 
 
 def test_evaluate_rules_due_soon(db, seed_user):

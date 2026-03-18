@@ -73,8 +73,8 @@ def test_list_org_audit_filtering(db, client, auth_header, seed_user):
 
 def test_list_org_audit_requires_admin(db, client, seed_user):
     from tc.core.security import create_access_token
-    from tc.db.models.user import User
     from tc.db.models.membership import Membership
+    from tc.db.models.user import User
 
     user, org = seed_user
 
