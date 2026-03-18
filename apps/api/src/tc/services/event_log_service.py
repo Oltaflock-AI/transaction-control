@@ -24,4 +24,9 @@ def list_event_logs_for_transaction(
     if event_type:
         query = query.filter(EventLog.event_type == event_type)
 
-    return query.order_by(EventLog.created_at.desc(), EventLog.id.desc()).offset((page - 1) * page_size).limit(page_size).all()
+    return (
+        query.order_by(EventLog.created_at.desc(), EventLog.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )

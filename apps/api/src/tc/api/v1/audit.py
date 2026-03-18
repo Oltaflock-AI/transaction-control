@@ -36,7 +36,10 @@ def list_org_audit(
     if page < 1:
         raise HTTPException(status_code=400, detail=f"page must be >= 1, got {page}")
     if page_size < 1 or page_size > MAX_PAGE_SIZE:
-        raise HTTPException(status_code=400, detail=f"page_size must be between 1 and {MAX_PAGE_SIZE}, got {page_size}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"page_size must be between 1 and {MAX_PAGE_SIZE}, got {page_size}",
+        )
 
     membership = (
         db.query(Membership)

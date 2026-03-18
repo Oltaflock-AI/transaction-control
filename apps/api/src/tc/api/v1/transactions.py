@@ -194,7 +194,9 @@ def get_events(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not a member of this organisation",
         )
-    logs = list_event_logs_for_transaction(db, transaction_id, event_type=event_type, page=page, page_size=page_size)
+    logs = list_event_logs_for_transaction(
+        db, transaction_id, event_type=event_type, page=page, page_size=page_size
+    )
     return [
         {
             "id": str(log.id),
