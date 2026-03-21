@@ -31,6 +31,7 @@ class Transaction(Base):
     status: Mapped[str] = mapped_column(String(20), default=TransactionStatus.draft)
     property_address: Mapped[str | None] = mapped_column(String(500), default=None)
     close_date: Mapped[date | None] = mapped_column(Date, default=None)
+    health_score: Mapped[str] = mapped_column(String(20), default="GREEN")
 
     tasks: Mapped[list[Task]] = relationship(back_populates="transaction")
     timeline_items: Mapped[list[TimelineItem]] = relationship(back_populates="transaction")

@@ -6,3 +6,10 @@ class TaskStatus(StrEnum):
     in_progress = "in_progress"
     done = "done"
     overdue = "overdue"
+
+
+class TaskSeverity(StrEnum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+    critical = "critical"
