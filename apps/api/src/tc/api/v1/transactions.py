@@ -44,7 +44,6 @@ def _txn_to_dict(t, *, include_tasks: bool = False):
         "title": t.title,
         "description": t.description,
         "status": t.status,
-        "health_score": getattr(t, "health_score", "GREEN"),
         "property_address": t.property_address,
         "close_date": t.close_date.isoformat() if t.close_date else None,
         "created_at": t.created_at.isoformat() if t.created_at else None,
@@ -54,9 +53,6 @@ def _txn_to_dict(t, *, include_tasks: bool = False):
             {
                 "id": str(task.id),
                 "title": task.title,
-                "offset_days": task.offset_days,
-                "description": task.description,
-                "category": task.category,
                 "status": task.status,
                 "due_at": task.due_at.isoformat() if task.due_at else None,
             }
@@ -168,44 +164,4 @@ def get_audit(transaction_id: uuid.UUID, user: CurrentUser, db: DB):
             "created_at": e.created_at.isoformat() if e.created_at else None,
         }
         for e in events
-    ]
-
-
-@router.get("/{transaction_id}/events")
-def get_events(
-    transaction_id: uuid.UUID,
-    user: CurrentUser,
-    db: DB,
-    event_type: str | None = None,
-    page: int = 1,
-    page_size: int = 100,
-):
-    """Event logs for a transaction."""
-    from tc.services.event_log_service import list_event_logs_for_transaction
-
-    txn = get_transaction(db, transaction_id)
-    if txn is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Transaction not found",
-        )
-    if not user_belongs_to_org(db, user.id, txn.org_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a member of this organisation",
-        )
-    logs = list_event_logs_for_transaction(
-        db, transaction_id, event_type=event_type, page=page, page_size=page_size
-    )
-    return [
-        {
-            "id": str(log.id),
-            "transaction_id": str(log.transaction_id),
-            "event_type": log.event_type,
-            "entity_type": log.entity_type,
-            "entity_id": str(log.entity_id) if log.entity_id else None,
-            "detail": log.detail,
-            "created_at": log.created_at.isoformat() if log.created_at else None,
-        }
-        for log in logs
     ]
