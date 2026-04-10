@@ -68,7 +68,7 @@ export const getAuditEvents = (params?: { org_id: string; entity_type?: string; 
   if (params?.action) query.set("action", params.action);
   if (params?.page) query.set("page", String(params.page));
   if (params?.page_size) query.set("page_size", String(params.page_size));
-  return apiFetch<AuditEvent[]>(`/audit?${query.toString()}`);
+  return apiFetch<{ items: AuditEvent[]; total: number; page: number; page_size: number; }>(`/audit?${query.toString()}`);
 };
 
 // Event Logs

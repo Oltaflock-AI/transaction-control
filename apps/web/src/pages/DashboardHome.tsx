@@ -1,14 +1,27 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MOCK_DASHBOARD_STATS, MOCK_TASKS } from "@/lib/mock-data";
+import { getDashboardStats, getMyTasks } from "@/lib/api";
 import { ArrowRightLeft, AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
 
 const DashboardHome = () => {
-  const stats = MOCK_DASHBOARD_STATS;
-  const overdueTasks = MOCK_TASKS.filter(
+  const { data: stats, isLoading: statsLoading } = useQuery({ queryKey: ["dashboardStats"], queryFn: getDashboardStats });
+  const { data: myTasks, isLoading: tasksLoading } = useQuery({ queryKey: ["myTasks"], queryFn: getMyTasks });
+
+  if (statsLoading || tasksLoading) {
+    return <div className="p-8 text-center text-muted-foreground">Loading dashboard...</div>;
+  }
+
+  if (!stats) {
+    return <div className="p-8 text-center text-destructive">Failed to load dashboard stats.</div>;
+  }
+
+  const tasks = myTasks || [];
+  const overdueTasks = tasks.filter(
     (t) => t.status === "overdue" || (t.status !== "done" && t.due_at && new Date(t.due_at) < new Date())
   );
+  const completedTasks = tasks.filter(t => t.status === "done").length;
 
   return (
     <div className="space-y-6">
@@ -51,7 +64,7 @@ const DashboardHome = () => {
             <CheckCircle2 className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{MOCK_TASKS.filter(t => t.status === "done").length}</div>
+            <div className="text-3xl font-bold">{completedTasks}</div>
           </CardContent>
         </Card>
       </div>

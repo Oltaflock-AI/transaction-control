@@ -23,7 +23,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { MOCK_TRANSACTIONS, MOCK_HEALTH } from "@/lib/mock-data";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createTransaction } from "@/lib/api";
 import type { Transaction, HealthScore } from "@/lib/types";
 
 interface CreateTransactionDialogProps {
@@ -40,6 +41,24 @@ const CreateTransactionDialog = ({ onCreated }: CreateTransactionDialogProps) =>
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const queryClient = useQueryClient();
+  
+  const mutation = useMutation({
+    mutationFn: (data: any) => createTransaction(data),
+    onSuccess: (newTx) => {
+      toast({ title: "Transaction created", description: newTx.title });
+      onCreated?.(newTx);
+      setLoading(false);
+      setOpen(false);
+      resetForm();
+      navigate(`/dashboard/transactions/${newTx.id}`);
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to create transaction", description: err.message, variant: "destructive" });
+      setLoading(false);
+    }
+  });
+
   const resetForm = () => {
     setTitle("");
     setDescription("");
@@ -55,38 +74,22 @@ const CreateTransactionDialog = ({ onCreated }: CreateTransactionDialogProps) =>
       return;
     }
 
+    const transactions = queryClient.getQueryData<Transaction[]>(["transactions"]);
+    const orgId = transactions?.[0]?.org_id;
+    if (!orgId) {
+      toast({ title: "Error", description: "Could not determine Organization ID. You must have at least one transaction to infer the org.", variant: "destructive" });
+      return;
+    }
+
     setLoading(true);
 
-    // Simulate API call — will be replaced with createTransaction() from api.ts
-    setTimeout(() => {
-      const now = new Date().toISOString();
-      const newTx: Transaction = {
-        id: `t${Date.now()}`,
-        org_id: "org-1",
-        title: title.trim(),
-        description: description.trim() || undefined,
-        status: "draft",
-        property_address: propertyAddress.trim() || undefined,
-        close_date: closeDate ? format(closeDate, "yyyy-MM-dd") : undefined,
-        health_score: "GREEN",
-        created_at: now,
-        updated_at: now,
-      };
-
-      // Add to mock data arrays (in-memory only)
-      MOCK_TRANSACTIONS.push(newTx);
-      (MOCK_HEALTH as Record<string, HealthScore>)[newTx.id] = {
-        status: "GREEN",
-        reasons: [],
-      };
-
-      toast({ title: "Transaction created", description: newTx.title });
-      onCreated?.(newTx);
-      setLoading(false);
-      setOpen(false);
-      resetForm();
-      navigate(`/dashboard/transactions/${newTx.id}`);
-    }, 500);
+    mutation.mutate({
+      org_id: orgId,
+      title: title.trim(),
+      description: description.trim() || undefined,
+      property_address: propertyAddress.trim() || undefined,
+      close_date: closeDate ? format(closeDate, "yyyy-MM-dd") : undefined,
+    });
   };
 
   return (

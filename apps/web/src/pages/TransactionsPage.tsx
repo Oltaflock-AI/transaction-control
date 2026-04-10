@@ -1,9 +1,9 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
-import { MOCK_TRANSACTIONS, MOCK_HEALTH } from "@/lib/mock-data";
+import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { HealthStatus, Transaction } from "@/lib/types";
+import type { HealthStatus } from "@/lib/types";
+import { getTransactions } from "@/lib/api";
 import CreateTransactionDialog from "@/components/CreateTransactionDialog";
 
 const statusVariant = (s: string) => {
@@ -23,20 +23,26 @@ const healthBadge = (status: HealthStatus) => {
     YELLOW: "bg-warning text-warning-foreground",
     RED: "bg-destructive text-destructive-foreground",
   };
-  return map[status];
+  return map[status] || map.GREEN;
 };
 
 const TransactionsPage = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
+  const { data: transactions, isLoading, refetch } = useQuery({ queryKey: ["transactions"], queryFn: getTransactions });
+
+  if (isLoading) {
+    return <div className="p-8 text-center text-muted-foreground">Loading transactions...</div>;
+  }
+
+  const txList = transactions || [];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Transactions</h1>
-          <p className="text-muted-foreground text-sm mt-1">{transactions.length} total transactions</p>
+          <p className="text-muted-foreground text-sm mt-1">{txList.length} total transactions</p>
         </div>
-        <CreateTransactionDialog onCreated={(tx) => setTransactions((prev) => [...prev, tx])} />
+        <CreateTransactionDialog onCreated={() => refetch()} />
       </div>
 
       <div className="rounded-lg border bg-card">
@@ -52,8 +58,8 @@ const TransactionsPage = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.map((tx) => {
-              const health = MOCK_HEALTH[tx.id];
+            {txList.map((tx) => {
+              const health = tx.health_score || "GREEN";
               return (
                 <TableRow key={tx.id} className="cursor-pointer hover:bg-accent/50">
                   <TableCell>
@@ -67,11 +73,9 @@ const TransactionsPage = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {health && (
-                      <Badge className={healthBadge(health.status)} variant="secondary">
-                        {health.status}
-                      </Badge>
-                    )}
+                    <Badge className={healthBadge(health)} variant="secondary">
+                      {health}
+                    </Badge>
                   </TableCell>
                   <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
                     {tx.property_address}
@@ -85,6 +89,13 @@ const TransactionsPage = () => {
                 </TableRow>
               );
             })}
+            {txList.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  No transactions found. Create one to get started.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>

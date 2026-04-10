@@ -58,6 +58,7 @@ def _txn_to_dict(t, *, include_tasks: bool = False):
                 "description": task.description,
                 "category": task.category,
                 "status": task.status,
+                "severity": task.severity,
                 "due_at": task.due_at.isoformat() if task.due_at else None,
             }
             for task in t.tasks
@@ -128,6 +129,7 @@ def get_tasks(transaction_id: uuid.UUID, user: CurrentUser, db: DB):
             "transaction_id": str(task.transaction_id),
             "title": task.title,
             "status": task.status,
+            "severity": task.severity,
             "due_at": task.due_at.isoformat() if task.due_at else None,
             "assignee_id": str(task.assignee_id) if task.assignee_id else None,
             "created_at": task.created_at.isoformat() if task.created_at else None,

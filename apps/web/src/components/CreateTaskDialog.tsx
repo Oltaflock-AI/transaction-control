@@ -6,9 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
-import { MOCK_USERS } from "@/lib/mock-data";
+import { USERS } from "@/lib/constants";
 import type { Task, TaskSeverity } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createTask } from "@/lib/api";
 
 interface CreateTaskDialogProps {
   transactionId: string;
@@ -25,35 +27,40 @@ const CreateTaskDialog = ({ transactionId, transactionTitle, onTaskCreated }: Cr
   const [assigneeId, setAssigneeId] = useState("");
   const [category, setCategory] = useState("");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (data: any) => createTask(transactionId, data),
+    onSuccess: (newTask) => {
+      onTaskCreated(newTask);
+      toast({ title: "Task created", description: `"${title}" added successfully.` });
+      setTitle("");
+      setDescription("");
+      setSeverity("medium");
+      setDueAt("");
+      setAssigneeId("");
+      setCategory("");
+      setOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["transaction", transactionId] });
+      queryClient.invalidateQueries({ queryKey: ["myTasks"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Task creation failed", description: err.message, variant: "destructive" });
+    }
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    const newTask: Task = {
-      id: `task-${Date.now()}`,
-      transaction_id: transactionId,
+    mutation.mutate({
       title: title.trim(),
       description: description.trim() || undefined,
-      status: "todo",
       assignee_id: assigneeId || undefined,
       due_at: dueAt ? new Date(dueAt).toISOString() : undefined,
       severity,
       category: category.trim() || undefined,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      transaction_title: transactionTitle,
-    };
-
-    onTaskCreated(newTask);
-    toast({ title: "Task created", description: `"${title}" added successfully.` });
-    setTitle("");
-    setDescription("");
-    setSeverity("medium");
-    setDueAt("");
-    setAssigneeId("");
-    setCategory("");
-    setOpen(false);
+    });
   };
 
   return (
@@ -70,16 +77,16 @@ const CreateTaskDialog = ({ transactionId, transactionTitle, onTaskCreated }: Cr
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="task-title">Title *</Label>
-            <Input id="task-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Schedule home inspection" required />
+            <Input id="task-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Schedule home inspection" required disabled={mutation.isPending} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="task-desc">Description</Label>
-            <Textarea id="task-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional details..." rows={2} />
+            <Textarea id="task-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional details..." rows={2} disabled={mutation.isPending} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Severity</Label>
-              <Select value={severity} onValueChange={(v) => setSeverity(v as TaskSeverity)}>
+              <Select value={severity} onValueChange={(v) => setSeverity(v as TaskSeverity)} disabled={mutation.isPending}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Low</SelectItem>
@@ -91,20 +98,20 @@ const CreateTaskDialog = ({ transactionId, transactionTitle, onTaskCreated }: Cr
             </div>
             <div className="space-y-2">
               <Label htmlFor="task-category">Category</Label>
-              <Input id="task-category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Inspection" />
+              <Input id="task-category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Inspection" disabled={mutation.isPending} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="task-due">Due Date</Label>
-              <Input id="task-due" type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
+              <Input id="task-due" type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} disabled={mutation.isPending} />
             </div>
             <div className="space-y-2">
               <Label>Assign To</Label>
-              <Select value={assigneeId} onValueChange={setAssigneeId}>
+              <Select value={assigneeId} onValueChange={setAssigneeId} disabled={mutation.isPending}>
                 <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
                 <SelectContent>
-                  {MOCK_USERS.map((u) => (
+                  {USERS.map((u) => (
                     <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -112,8 +119,8 @@ const CreateTaskDialog = ({ transactionId, transactionTitle, onTaskCreated }: Cr
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit">Create Task</Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={mutation.isPending}>Cancel</Button>
+            <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "Creating..." : "Create Task"}</Button>
           </div>
         </form>
       </DialogContent>

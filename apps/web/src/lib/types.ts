@@ -103,7 +103,7 @@ export interface EventLog {
 export type HealthStatus = "GREEN" | "YELLOW" | "RED";
 
 export interface HealthScore {
-  status: HealthStatus;
+  score: HealthStatus;
   reasons: string[];
 }
 

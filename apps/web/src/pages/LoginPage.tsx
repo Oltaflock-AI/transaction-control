@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login as authLogin } from "@/lib/auth";
-import { MOCK_USER } from "@/lib/mock-data";
+import { useMutation } from "@tanstack/react-query";
+import { authLogin } from "@/lib/api";
+import { login as authStoreLogin } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,25 +14,32 @@ const LoginPage = () => {
   const [email, setEmail] = useState("admin@dev.local");
   const [password, setPassword] = useState("password123");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const loginMutation = useMutation({
+    mutationFn: () => authLogin(email, password),
+    onSuccess: (data) => {
+      authStoreLogin(data.access_token, {
+        id: "sys_user",
+        email,
+        full_name: email.split("@")[0],
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      navigate("/dashboard");
+    },
+    onError: (err: any) => {
+      setError(err.message || "Login failed. Please try again.");
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
-
-    try {
-      // Mock login — in production calls POST /api/v1/auth/login
-      if (email && password.length >= 4) {
-        authLogin("mock-jwt-token", { ...MOCK_USER, email });
-        navigate("/dashboard");
-      } else {
-        setError("Please enter a valid email and password (min 4 chars).");
-      }
-    } catch {
-      setError("Login failed. Please try again.");
-    } finally {
-      setLoading(false);
+    if (email && password.length >= 4) {
+      loginMutation.mutate();
+    } else {
+      setError("Please enter a valid email and password (min 4 chars).");
     }
   };
 
@@ -61,6 +69,7 @@ const LoginPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={loginMutation.isPending}
               />
             </div>
             <div className="space-y-2">
@@ -72,10 +81,11 @@ const LoginPage = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={loginMutation.isPending}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in…" : "Sign in"}
+            <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+              {loginMutation.isPending ? "Signing in…" : "Sign in"}
             </Button>
             <p className="text-xs text-muted-foreground text-center">
               Dev credentials: admin@dev.local / password123

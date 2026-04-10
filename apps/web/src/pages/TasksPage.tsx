@@ -1,15 +1,16 @@
-import { useState } from "react";
-import { MOCK_TASKS } from "@/lib/mock-data";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMyTasks, updateTaskStatus } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
 import type { Task, TaskStatus } from "@/lib/types";
 
 const nextStatus: Record<string, TaskStatus> = {
   todo: "in_progress",
   in_progress: "done",
   done: "todo",
-  overdue: "in_progress",
+  overdue: "done",
 };
 
 const statusStyle: Record<string, string> = {
@@ -27,16 +28,31 @@ const severityStyle: Record<string, string> = {
 };
 
 const TasksPage = () => {
-  const [tasks, setTasks] = useState<Task[]>([...MOCK_TASKS]);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  const toggleStatus = (id: string) => {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === id ? { ...t, status: nextStatus[t.status] } : t
-      )
-    );
+  const { data: myTasks, isLoading } = useQuery({
+    queryKey: ["myTasks"],
+    queryFn: getMyTasks,
+  });
+
+  const mutation = useMutation({
+    mutationFn: ({ taskId, status }: { taskId: string, status: TaskStatus }) => updateTaskStatus(taskId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myTasks"] });
+    },
+    onError: (err: any) => toast({ title: "Failed to update status", description: err.message, variant: "destructive" })
+  });
+
+  const toggleStatus = (task: Task) => {
+    mutation.mutate({ taskId: task.id, status: nextStatus[task.status] });
   };
 
+  if (isLoading) {
+    return <div className="p-8 text-center text-muted-foreground">Loading tasks...</div>;
+  }
+
+  const tasks = myTasks || [];
   const now = new Date();
 
   return (
@@ -59,7 +75,7 @@ const TasksPage = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tasks.map((task) => {
+            {tasks.map((task: Task) => {
               const overdue = task.status === "overdue" || (task.status !== "done" && task.due_at && new Date(task.due_at) < now);
               return (
                 <TableRow key={task.id}>
@@ -70,12 +86,12 @@ const TasksPage = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={statusStyle[task.status]}>
+                    <Badge variant="outline" className={statusStyle[task.status] || statusStyle.todo}>
                       {task.status.replace("_", " ")}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={severityStyle[task.severity]}>
+                    <Badge variant="outline" className={severityStyle[task.severity] || severityStyle.medium}>
                       {task.severity}
                     </Badge>
                   </TableCell>
@@ -89,15 +105,23 @@ const TasksPage = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => toggleStatus(task.id)}
+                      onClick={() => toggleStatus(task)}
                       className="text-xs"
+                      disabled={mutation.isPending}
                     >
-                      → {nextStatus[task.status].replace("_", " ")}
+                      → {nextStatus[task.status]?.replace("_", " ")}
                     </Button>
                   </TableCell>
                 </TableRow>
               );
             })}
+            {tasks.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  You have no assigned tasks.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
