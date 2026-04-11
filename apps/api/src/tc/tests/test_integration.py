@@ -49,6 +49,7 @@ def test_week2_end_to_end_integration(mock_delay, db, client, auth_header, seed_
     # 5. Verify: task marked overdue, event_log created, audit_event created,
     # rules engine created escalation task, RED health
     r_tasks_after = client.get(f"/api/v1/transactions/{txn_id}/tasks", headers=auth_header)
+    assert r_tasks_after.status_code == 200
     tasks_after = r_tasks_after.json()
 
     escalation_tasks = [t for t in tasks_after if t["title"].startswith("ESCALATION")]
@@ -58,27 +59,40 @@ def test_week2_end_to_end_integration(mock_delay, db, client, auth_header, seed_
     assert overdue_task["status"] == "overdue"
 
     r_events = client.get(f"/api/v1/transactions/{txn_id}/events", headers=auth_header)
+    assert r_events.status_code == 200
     events = [e for e in r_events.json() if e["event_type"] == "task.overdue"]
     assert len(events) >= 1
 
     r_audit = client.get(
         f"/api/v1/audit?org_id={str(org.id)}&action=task.marked_overdue", headers=auth_header
     )
+    assert r_audit.status_code == 200
     audit_events = r_audit.json()["items"]
     assert len(audit_events) >= 1
 
     r_health = client.get(f"/api/v1/transactions/{txn_id}/health", headers=auth_header)
+    assert r_health.status_code == 200
     assert r_health.json()["score"] == "YELLOW"
 
     # 6. Mark the escalation task as done, and the overdue task as done.
     escalation_task_id = escalation_tasks[0]["id"]
-    client.patch(
-        f"/api/v1/tasks/{escalation_task_id}/status", json={"status": "done"}, headers=auth_header
+    resp_escalation = client.patch(
+        f"/api/v1/tasks/{escalation_task_id}/status",
+        json={"status": "done"},
+        headers=auth_header,
     )
-    client.patch(
-        f"/api/v1/tasks/{first_task['id']}/status", json={"status": "done"}, headers=auth_header
+    assert resp_escalation.status_code == 200
+    assert resp_escalation.json()["status"] == "done"
+
+    resp_first = client.patch(
+        f"/api/v1/tasks/{first_task['id']}/status",
+        json={"status": "done"},
+        headers=auth_header,
     )
+    assert resp_first.status_code == 200
+    assert resp_first.json()["status"] == "done"
 
     # 7. Verify health score improves
     r_health_after = client.get(f"/api/v1/transactions/{txn_id}/health", headers=auth_header)
+    assert r_health_after.status_code == 200
     assert r_health_after.json()["score"] == "GREEN"
