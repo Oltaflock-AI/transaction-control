@@ -13,3 +13,9 @@ class TaskSeverity(StrEnum):
     medium = "medium"
     high = "high"
     critical = "critical"
+
+
+class UserRole(StrEnum):
+    admin = "admin"
+    buyerAgent = "buyerAgent"
+    sellerAgent = "sellerAgent"

@@ -17,15 +17,8 @@ const LoginPage = () => {
 
   const loginMutation = useMutation({
     mutationFn: () => authLogin(email, password),
-    onSuccess: (data) => {
-      authStoreLogin(data.access_token, {
-        id: "sys_user",
-        email,
-        full_name: email.split("@")[0],
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
+    onSuccess: (data: any) => {
+      authStoreLogin(data.access_token, data.user);
       navigate("/dashboard");
     },
     onError: (err: any) => {

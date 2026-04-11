@@ -7,6 +7,7 @@ from tc.api.v1.health import router as health_router
 from tc.api.v1.tasks import router as tasks_router
 from tc.api.v1.timeline import router as timeline_router
 from tc.api.v1.transactions import router as transactions_router
+from tc.api.v1.users import router as users_router
 
 router = APIRouter()
 
@@ -20,3 +21,4 @@ router.include_router(tasks_router)
 router.include_router(timeline_router)
 router.include_router(audit_router)
 router.include_router(admin_router)
+router.include_router(users_router)

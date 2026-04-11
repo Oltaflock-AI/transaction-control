@@ -62,6 +62,11 @@ export const updateTaskStatus = (id: string, status: string) =>
 export const assignTask = (id: string, assignee_id: string) =>
   apiFetch<Task>(`/tasks/${id}/assign`, { method: "PATCH", body: JSON.stringify({ assignee_id }) });
 
+export const getUsers = () => apiFetch<(User & { role: string, is_active: boolean })[]>("/users");
+
+export const createUser = (data: Partial<User> & { role: string }) =>
+  apiFetch<User>("/users", { method: "POST", body: JSON.stringify(data) });
+
 // Audit
 export const getAuditEvents = (params?: { org_id: string; entity_type?: string; action?: string; page?: number; page_size?: number }) => {
   const query = new URLSearchParams();

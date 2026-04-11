@@ -10,6 +10,7 @@ import TransactionsPage from "./pages/TransactionsPage";
 import TransactionDetailPage from "./pages/TransactionDetailPage";
 import TasksPage from "./pages/TasksPage";
 import AuditPage from "./pages/AuditPage";
+import TeamPage from "./pages/TeamPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="transactions" element={<TransactionsPage />} />
             <Route path="transactions/:id" element={<TransactionDetailPage />} />
             <Route path="tasks" element={<TasksPage />} />
+            <Route path="team" element={<TeamPage />} />
             <Route path="audit" element={<AuditPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />

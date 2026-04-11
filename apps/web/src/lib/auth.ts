@@ -32,7 +32,6 @@ export function isAuthenticated(): boolean {
 }
 
 export function isAdmin(): boolean {
-  // In production, check membership role from API
-  // For mock: stored user has role info in membership
-  return true; // mock: admin@dev.local is admin
+  const user = getUser();
+  return user?.role === "admin";
 }

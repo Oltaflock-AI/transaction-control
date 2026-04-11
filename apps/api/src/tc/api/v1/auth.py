@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from tc.core.config import settings
 from tc.core.security import create_access_token
 from tc.db.models.user import User
+from tc.db.models.membership import Membership
 from tc.db.session import get_db
 from tc.services.auth_service import authenticate_user
 
@@ -27,6 +28,7 @@ class DevTokenRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    user: dict
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -37,7 +39,19 @@ def login(body: LoginRequest, db: DB):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
         )
-    return TokenResponse(access_token=create_access_token(subject=str(user.id)))
+    membership = db.query(Membership).filter(Membership.user_id == user.id).first()
+    role = membership.role if membership else "member"
+    
+    return TokenResponse(
+        access_token=create_access_token(subject=str(user.id)),
+        user={
+            "id": str(user.id),
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": role,
+            "is_active": user.is_active,
+        }
+    )
 
 
 @router.post("/dev-token", response_model=TokenResponse)
@@ -50,4 +64,16 @@ def dev_token(body: DevTokenRequest, db: DB):
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    return TokenResponse(access_token=create_access_token(subject=str(user.id)))
+    membership = db.query(Membership).filter(Membership.user_id == user.id).first()
+    role = membership.role if membership else "member"
+
+    return TokenResponse(
+        access_token=create_access_token(subject=str(user.id)),
+        user={
+            "id": str(user.id),
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": role,
+            "is_active": user.is_active,
+        }
+    )
