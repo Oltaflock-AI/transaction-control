@@ -142,7 +142,7 @@ def get_task(db: Session, task_id: uuid.UUID) -> Task | None:
 
 def list_tasks_by_transaction(db: Session, transaction_id: uuid.UUID) -> list[Task]:
     """Return all tasks belonging to a transaction."""
-    return db.query(Task).filter(Task.transaction_id == transaction_id).order_by(Task.due_at).all()
+    return db.query(Task).filter(Task.transaction_id == transaction_id).order_by(Task.created_at.asc()).all()
 
 
 def list_tasks_by_user(db: Session, user_id: uuid.UUID) -> list[Task]:
@@ -155,6 +155,6 @@ def list_tasks_by_user(db: Session, user_id: uuid.UUID) -> list[Task]:
         db.query(Task)
         .join(Transaction, Task.transaction_id == Transaction.id)
         .filter(Task.assignee_id == user_id, Transaction.org_id.in_(user_org_ids))
-        .order_by(Task.due_at)
+        .order_by(Task.created_at.asc())
         .all()
     )
