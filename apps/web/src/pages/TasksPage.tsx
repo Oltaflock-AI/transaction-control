@@ -1,16 +1,28 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getMyTasks, updateTaskStatus } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import type { Task, TaskStatus } from "@/lib/types";
+import { CheckCircle2 } from "lucide-react";
 
 const nextStatus: Record<string, TaskStatus> = {
   todo: "in_progress",
   in_progress: "done",
   done: "todo",
-  overdue: "done",
+  overdue: "in_progress",
 };
 
 const statusStyle: Record<string, string> = {
@@ -30,6 +42,7 @@ const severityStyle: Record<string, string> = {
 const TasksPage = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [confirmTask, setConfirmTask] = useState<Task | null>(null);
 
   const { data: myTasks, isLoading } = useQuery({
     queryKey: ["myTasks"],
@@ -44,8 +57,11 @@ const TasksPage = () => {
     onError: (err: any) => toast({ title: "Failed to update status", description: err.message, variant: "destructive" })
   });
 
-  const toggleStatus = (task: Task) => {
-    mutation.mutate({ taskId: task.id, status: nextStatus[task.status] });
+  const confirmToggleStatus = () => {
+    if (confirmTask) {
+      mutation.mutate({ taskId: confirmTask.id, status: nextStatus[confirmTask.status] });
+      setConfirmTask(null);
+    }
   };
 
   if (isLoading) {
@@ -102,15 +118,20 @@ const TasksPage = () => {
                     {task.transaction_title}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleStatus(task)}
-                      className="text-xs"
-                      disabled={mutation.isPending}
-                    >
-                      → {nextStatus[task.status]?.replace("_", " ")}
-                    </Button>
+                    {task.status === "done" ? (
+                      <span className="text-xs text-muted-foreground mr-4 flex items-center justify-end gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-success" /> Completed
+                      </span>
+                    ) : (
+                      <Button
+                        variant={task.status === "todo" || task.status === "overdue" ? "secondary" : "outline"}
+                        size="sm"
+                        onClick={() => setConfirmTask(task)}
+                        className="text-xs"
+                      >
+                        {task.status === "todo" || task.status === "overdue" ? "Start Task" : "Mark Done"}
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               );
@@ -125,6 +146,23 @@ const TasksPage = () => {
           </TableBody>
         </Table>
       </div>
+
+      <AlertDialog open={!!confirmTask} onOpenChange={(isOpen) => !isOpen && !mutation.isPending && setConfirmTask(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Update Task Status</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark this task as <span className="font-semibold text-foreground">{confirmTask ? nextStatus[confirmTask.status]?.replace("_", " ") : ""}</span>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={mutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); confirmToggleStatus(); }} disabled={mutation.isPending}>
+              {mutation.isPending ? "Updating..." : "Update Status"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
