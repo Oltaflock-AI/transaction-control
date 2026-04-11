@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getTransaction, getTransactionTimeline, getTransactionHealth, markTimelineItemComplete, updateTaskStatus, assignTask } from "@/lib/api";
-import { USERS } from "@/lib/constants";
+import { getTransaction, getTransactionTimeline, getTransactionHealth, markTimelineItemComplete, updateTaskStatus, assignTask, getTransactionMembers } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, CheckCircle2, Clock, AlertTriangle, Circle, UserPlus } from "lucide-react";
@@ -49,6 +48,12 @@ const TransactionDetailPage = () => {
   const { data: timelineItemsData, isLoading: timelineLoading } = useQuery({
     queryKey: ["timeline", id],
     queryFn: () => getTransactionTimeline(id!),
+    enabled: !!id,
+  });
+
+  const { data: users } = useQuery({
+    queryKey: ["transactionMembers", id],
+    queryFn: () => getTransactionMembers(id!),
     enabled: !!id,
   });
 
@@ -105,7 +110,8 @@ const TransactionDetailPage = () => {
 
   const getAssigneeName = (assigneeId?: string) => {
     if (!assigneeId) return "Unassigned";
-    return USERS.find((u) => u.id === assigneeId)?.full_name || assigneeId;
+    const member = (users || []).find((u) => u.id === assigneeId);
+    return member?.full_name || assigneeId;
   };
 
   return (
@@ -133,10 +139,10 @@ const TransactionDetailPage = () => {
 
       {/* Health Reasons */}
       {health && health.reasons.length > 0 && (
-        <Card className={health.status === "RED" ? "border-destructive/30" : "border-warning/30"}>
+        <Card className={health.score === "RED" ? "border-destructive/30" : "border-warning/30"}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <AlertTriangle className={`h-4 w-4 ${health.status === "RED" ? "text-destructive" : "text-warning"}`} />
+              <AlertTriangle className={`h-4 w-4 ${health.score === "RED" ? "text-destructive" : "text-warning"}`} />
               Health Issues
             </CardTitle>
           </CardHeader>
@@ -144,7 +150,7 @@ const TransactionDetailPage = () => {
             <ul className="space-y-1">
               {health.reasons.map((r: string, i: number) => (
                 <li key={i} className="text-sm text-muted-foreground flex items-center gap-2">
-                  <span className={`h-1.5 w-1.5 rounded-full ${health.status === "RED" ? "bg-destructive" : "bg-warning"}`} />
+                  <span className={`h-1.5 w-1.5 rounded-full ${health.score === "RED" ? "bg-destructive" : "bg-warning"}`} />
                   {r}
                 </li>
               ))}
@@ -251,6 +257,7 @@ const TransactionDetailPage = () => {
               {tasks.map((task: Task, i: number) => {
                 const due = task.due_at ? new Date(task.due_at) : null;
                 const completed = task.status === "done";
+                const todo = task.status === "todo";
                 const overdue = !completed && due && due < now;
                 const dueSoon = !completed && !overdue && due && (due.getTime() - now.getTime()) < 3 * 86400000;
 
@@ -273,7 +280,7 @@ const TransactionDetailPage = () => {
                     <div className="pb-2 flex-1">
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <p className="font-medium text-foreground text-sm">{task.title} <Badge variant="outlined" className='bg-muted text-muted-foreground'>{task.severity}</Badge></p>
+                          <p className="font-medium text-foreground text-sm">{task.title} <Badge variant="outline" className='bg-muted text-muted-foreground'>{task.severity}</Badge></p>
                           {task.description && (
                             <p className="text-xs text-muted-foreground">{task.description}</p>
                           )}
@@ -282,6 +289,7 @@ const TransactionDetailPage = () => {
                               Due: {due ? due.toLocaleDateString() : "—"}
                               {" · "}{getAssigneeName(task.assignee_id)}
                             </span>
+                            {todo && <Badge className="bg-warning/15 text-warning text-xs">Todo</Badge>}
                             {completed && <Badge className="bg-success/15 text-success text-xs">Completed</Badge>}
                             {overdue && <Badge className="bg-destructive/15 text-destructive text-xs">Overdue</Badge>}
                             {dueSoon && <Badge className="bg-warning/15 text-warning text-xs">Due Soon</Badge>}
@@ -296,7 +304,7 @@ const TransactionDetailPage = () => {
                             </PopoverTrigger>
                             <PopoverContent className="w-48 p-2">
                               <div className="space-y-1">
-                                {USERS.map((u) => (
+                                {users && users.length > 0 ? users.map((u) => (
                                   <Button
                                     key={u.id}
                                     variant={task.assignee_id === u.id ? "secondary" : "ghost"}
@@ -306,7 +314,7 @@ const TransactionDetailPage = () => {
                                   >
                                     {u.full_name}
                                   </Button>
-                                ))}
+                                )) : <div className="text-xs p-2 text-muted-foreground">No users found</div>}
                               </div>
                             </PopoverContent>
                           </Popover>

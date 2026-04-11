@@ -2,6 +2,7 @@ import { getToken } from "./auth";
 import type {
   Transaction, Task, TimelineItem, HealthScore,
   AuditEvent, EventLog, DashboardStats, AuthResponse,
+  User,
 } from "./types";
 
 const API_BASE = "/api/v1";
@@ -39,6 +40,7 @@ export const authLogin = (email: string, password: string) =>
 // Transactions
 export const getTransactions = () => apiFetch<Transaction[]>("/transactions");
 export const getTransaction = (id: string) => apiFetch<Transaction>(`/transactions/${id}`);
+export const getTransactionMembers = (id: string) => apiFetch<User[]>(`/transactions/${id}/members`);
 export const createTransaction = (data: { org_id: string; title: string; description?: string; property_address?: string; close_date?: string }) =>
   apiFetch<Transaction>("/transactions", { method: "POST", body: JSON.stringify(data) });
 

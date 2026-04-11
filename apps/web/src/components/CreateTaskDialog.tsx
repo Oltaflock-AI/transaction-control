@@ -6,11 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
-import { USERS } from "@/lib/constants";
 import type { Task, TaskSeverity } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createTask } from "@/lib/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createTask, getTransactionMembers } from "@/lib/api";
 
 interface CreateTaskDialogProps {
   transactionId: string;
@@ -28,6 +27,12 @@ const CreateTaskDialog = ({ transactionId, transactionTitle, onTaskCreated }: Cr
   const [category, setCategory] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const { data: users } = useQuery({
+    queryKey: ["transactionMembers", transactionId],
+    queryFn: () => getTransactionMembers(transactionId),
+    enabled: !!transactionId,
+  });
 
   const mutation = useMutation({
     mutationFn: (data: any) => createTask(transactionId, data),
@@ -111,7 +116,7 @@ const CreateTaskDialog = ({ transactionId, transactionTitle, onTaskCreated }: Cr
               <Select value={assigneeId} onValueChange={setAssigneeId} disabled={mutation.isPending}>
                 <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
                 <SelectContent>
-                  {USERS.map((u) => (
+                  {(users || []).map((u) => (
                     <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
                   ))}
                 </SelectContent>
