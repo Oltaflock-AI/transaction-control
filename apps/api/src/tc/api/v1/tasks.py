@@ -32,6 +32,8 @@ class TaskCreate(BaseModel):
     description: str | None = None
     assignee_id: uuid.UUID | None = None
     due_at: datetime | None = None
+    severity: str | None = None
+    category: str | None = None
 
     @field_validator("due_at")
     @classmethod
@@ -51,12 +53,15 @@ class TaskAssign(BaseModel):
 
 
 def _task_to_dict(task):
+    severity_val = task.severity.value if hasattr(task.severity, "value") else task.severity
     return {
         "id": str(task.id),
         "transaction_id": str(task.transaction_id),
         "title": task.title,
         "description": task.description,
         "status": task.status,
+        "severity": severity_val,
+        "transaction_title": task.transaction.title if task.transaction else None,
         "assignee_id": str(task.assignee_id) if task.assignee_id else None,
         "due_at": task.due_at.isoformat() if task.due_at else None,
         "created_at": task.created_at.isoformat() if task.created_at else None,
@@ -123,6 +128,8 @@ def create_task_endpoint(transaction_id: uuid.UUID, body: TaskCreate, user: Curr
             description=body.description,
             assignee_id=body.assignee_id,
             due_at=body.due_at,
+            severity=body.severity,
+            category=body.category,
         )
     except TransactionNotFoundError as exc:
         raise HTTPException(
