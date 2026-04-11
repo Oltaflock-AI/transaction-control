@@ -4,6 +4,7 @@ import json
 import logging
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 from tc.db.models.event_log import EventLog
@@ -31,6 +32,7 @@ def check_deadlines(db: Session) -> dict:
             Task.due_at.isnot(None),
             Task.due_at < now,
             Task.status.notin_([TaskStatus.done, TaskStatus.overdue]),
+            or_(Task.category.is_(None), Task.category.notin_(["escalation", "reminder"])),
         )
         .all()
     )
@@ -68,7 +70,7 @@ def check_deadlines(db: Session) -> dict:
             entity_type="task",
             entity_id=task.id,
             actor_id=None,
-            detail=detail,
+            detail=f"Task '{task.title}' was automatically marked as OVERDUE",
         )
 
         evaluate_rules(db, trigger="task.overdue", source_task=task)
@@ -81,6 +83,7 @@ def check_deadlines(db: Session) -> dict:
             Task.due_at > now,
             Task.due_at <= due_soon_threshold,
             Task.status.in_([TaskStatus.todo, TaskStatus.in_progress]),
+            or_(Task.category.is_(None), Task.category.notin_(["escalation", "reminder"])),
         )
         .all()
     )
@@ -121,7 +124,7 @@ def check_deadlines(db: Session) -> dict:
                 entity_type="task",
                 entity_id=task.id,
                 actor_id=None,
-                detail=detail,
+                detail=f"Task '{task.title}' is due in {payload['hours_remaining']} hours",
             )
 
             evaluate_rules(db, trigger="task.due_soon", source_task=task)
