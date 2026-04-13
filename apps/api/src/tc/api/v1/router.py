@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from tc.api.v1.admin import router as admin_router
 from tc.api.v1.audit import router as audit_router
 from tc.api.v1.auth import router as auth_router
+from tc.api.v1.dashboard import router as dashboard_router
 from tc.api.v1.health import router as health_router
 from tc.api.v1.tasks import router as tasks_router
 from tc.api.v1.timeline import router as timeline_router
@@ -22,3 +23,4 @@ router.include_router(timeline_router)
 router.include_router(audit_router)
 router.include_router(admin_router)
 router.include_router(users_router)
+router.include_router(dashboard_router)
