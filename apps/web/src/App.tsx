@@ -12,6 +12,11 @@ import TasksPage from "./pages/TasksPage";
 import AuditPage from "./pages/AuditPage";
 import TeamPage from "./pages/TeamPage";
 import NotFound from "./pages/NotFound";
+import { isAdmin } from "@/lib/auth";
+
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  return isAdmin() ? <>{children}</> : <Navigate to="/dashboard" replace />;
+};
 
 const queryClient = new QueryClient();
 
@@ -26,11 +31,11 @@ const App = () => (
           <Route path="/login" element={<LoginPage />} />
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<DashboardHome />} />
-            <Route path="transactions" element={<TransactionsPage />} />
-            <Route path="transactions/:id" element={<TransactionDetailPage />} />
+            <Route path="transactions" element={<AdminRoute><TransactionsPage /></AdminRoute>} />
+            <Route path="transactions/:id" element={<AdminRoute><TransactionDetailPage /></AdminRoute>} />
             <Route path="tasks" element={<TasksPage />} />
-            <Route path="team" element={<TeamPage />} />
-            <Route path="audit" element={<AuditPage />} />
+            <Route path="team" element={<AdminRoute><TeamPage /></AdminRoute>} />
+            <Route path="audit" element={<AdminRoute><AuditPage /></AdminRoute>} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
