@@ -25,7 +25,8 @@ def upgrade() -> None:
     op.add_column('tasks', sa.Column('severity', sa.String(length=20), nullable=True))
     op.add_column('tasks', sa.Column('dedupe_key', sa.String(length=100), nullable=True))
     op.create_index(op.f('ix_tasks_dedupe_key'), 'tasks', ['dedupe_key'], unique=True)
-    op.add_column('transactions', sa.Column('health_score', sa.String(length=20), nullable=False))
+    op.add_column('transactions', sa.Column('health_score', sa.String(length=20), nullable=False, server_default='GREEN'))
+    op.alter_column('transactions', 'health_score', server_default=None)
     # ### end Alembic commands ###
 
 

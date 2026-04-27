@@ -14,6 +14,7 @@ from tc.services.audit_service import list_audit_events_for_transaction
 from tc.services.transaction_service import (
     create_transaction,
     get_transaction,
+    list_org_users,
     list_user_transactions,
     user_belongs_to_org,
 )
@@ -58,7 +59,10 @@ def _txn_to_dict(t, *, include_tasks: bool = False):
                 "description": task.description,
                 "category": task.category,
                 "status": task.status,
+                "severity": task.severity,
                 "due_at": task.due_at.isoformat() if task.due_at else None,
+                "assignee_id": str(task.assignee_id) if task.assignee_id else None,
+                "created_at": task.created_at.isoformat() if task.created_at else None,
             }
             for task in t.tasks
         ]
@@ -128,6 +132,7 @@ def get_tasks(transaction_id: uuid.UUID, user: CurrentUser, db: DB):
             "transaction_id": str(task.transaction_id),
             "title": task.title,
             "status": task.status,
+            "severity": task.severity,
             "due_at": task.due_at.isoformat() if task.due_at else None,
             "assignee_id": str(task.assignee_id) if task.assignee_id else None,
             "created_at": task.created_at.isoformat() if task.created_at else None,
@@ -140,6 +145,31 @@ def get_tasks(transaction_id: uuid.UUID, user: CurrentUser, db: DB):
 def list_all(user: CurrentUser, db: DB):
     txns = list_user_transactions(db, user.id)
     return [_txn_to_dict(t) for t in txns]
+
+
+@router.get("/{transaction_id}/members")
+def get_members(transaction_id: uuid.UUID, user: CurrentUser, db: DB):
+    """List users belonging to the organisation of the transaction."""
+    txn = get_transaction(db, transaction_id)
+    if txn is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found",
+        )
+    if not user_belongs_to_org(db, user.id, txn.org_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this organisation",
+        )
+    users = list_org_users(db, txn.org_id)
+    return [
+        {
+            "id": str(u.id),
+            "email": u.email,
+            "full_name": u.full_name,
+        }
+        for u in users
+    ]
 
 
 @router.get("/{transaction_id}/audit")
@@ -177,6 +207,8 @@ def get_events(
     user: CurrentUser,
     db: DB,
     event_type: str | None = None,
+    page: int = 1,
+    page_size: int = 100,
 ):
     """Event logs for a transaction."""
     from tc.services.event_log_service import list_event_logs_for_transaction
@@ -192,7 +224,9 @@ def get_events(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not a member of this organisation",
         )
-    logs = list_event_logs_for_transaction(db, transaction_id, event_type=event_type)
+    logs = list_event_logs_for_transaction(
+        db, transaction_id, event_type=event_type, page=page, page_size=page_size
+    )
     return [
         {
             "id": str(log.id),

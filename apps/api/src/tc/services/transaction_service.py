@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from tc.db.models.membership import Membership
 from tc.db.models.transaction import Transaction, TransactionStatus
+from tc.db.models.user import User
 
 
 def create_transaction(
@@ -61,3 +62,12 @@ def user_has_access_to_transaction(
     if not txn:
         return False
     return user_belongs_to_org(db, user_id, txn.org_id)
+
+
+def list_org_users(db: Session, org_id: uuid.UUID) -> list[User]:
+    return (
+        db.query(User)
+        .join(Membership, Membership.user_id == User.id)
+        .filter(Membership.org_id == org_id)
+        .all()
+    )
