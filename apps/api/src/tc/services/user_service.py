@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import uuid
+
 from sqlalchemy.orm import Session
 
 from tc.core.security import hash_password
-from tc.db.models.user import User
 from tc.db.models.membership import Membership
+from tc.db.models.user import User
+
 
 class UserAlreadyExistsError(ValueError):
     """Raised when trying to create a user that already exists."""
+
 
 def create_user_in_org(
     db: Session,
@@ -21,10 +24,14 @@ def create_user_in_org(
 ) -> User:
     """Create a new user and add them to the organization with a specific role."""
     user = db.query(User).filter(User.email == email).first()
-    
+
     if user:
         # Check if already in org
-        membership = db.query(Membership).filter(Membership.org_id == org_id, Membership.user_id == user.id).first()
+        membership = (
+            db.query(Membership)
+            .filter(Membership.org_id == org_id, Membership.user_id == user.id)
+            .first()
+        )
         if not membership:
             membership = Membership(org_id=org_id, user_id=user.id, role=role)
             db.add(membership)
@@ -52,6 +59,7 @@ def create_user_in_org(
     db.commit()
     db.refresh(user)
     return user
+
 
 def list_users_in_org(db: Session, org_id: uuid.UUID) -> list[tuple[User, str]]:
     """Return all users in an org, along with their roles."""

@@ -32,3 +32,6 @@ dist/
 
 # DB / local volumes
 .pgdata/
+
+# Internal docs (separate repo)
+transaction-control-internal/

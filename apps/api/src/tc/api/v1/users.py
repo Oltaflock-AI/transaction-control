@@ -32,7 +32,7 @@ def list_org_users(user: CurrentUser, db: DB):
         raise HTTPException(status_code=403, detail="Not a member of any organization")
 
     users_roles = list_users_in_org(db, membership.org_id)
-    
+
     return [
         {
             "id": str(u.id),
@@ -56,7 +56,10 @@ def create_org_user(body: UserCreateRequest, user: CurrentUser, db: DB):
         raise HTTPException(status_code=403, detail="Only admins can create users")
 
     if body.role not in (UserRole.buyerAgent, UserRole.sellerAgent):
-        raise HTTPException(status_code=400, detail="Only buyerAgent and sellerAgent roles can be assigned dynamically.")
+        raise HTTPException(
+            status_code=400,
+            detail="Only buyerAgent and sellerAgent roles can be assigned dynamically.",
+        )
 
     try:
         new_user = create_user_in_org(
@@ -68,7 +71,7 @@ def create_org_user(body: UserCreateRequest, user: CurrentUser, db: DB):
             role=body.role,
         )
     except UserAlreadyExistsError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=str(e)) from None
 
     return {
         "id": str(new_user.id),

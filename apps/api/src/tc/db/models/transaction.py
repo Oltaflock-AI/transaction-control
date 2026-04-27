@@ -33,5 +33,7 @@ class Transaction(Base):
     close_date: Mapped[date | None] = mapped_column(Date, default=None)
     health_score: Mapped[str] = mapped_column(String(20), default="GREEN")
 
-    tasks: Mapped[list[Task]] = relationship(back_populates="transaction", order_by="Task.created_at")
+    tasks: Mapped[list[Task]] = relationship(
+        back_populates="transaction", order_by="Task.created_at"
+    )
     timeline_items: Mapped[list[TimelineItem]] = relationship(back_populates="transaction")

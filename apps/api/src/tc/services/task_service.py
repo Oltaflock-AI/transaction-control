@@ -142,7 +142,12 @@ def get_task(db: Session, task_id: uuid.UUID) -> Task | None:
 
 def list_tasks_by_transaction(db: Session, transaction_id: uuid.UUID) -> list[Task]:
     """Return all tasks belonging to a transaction."""
-    return db.query(Task).filter(Task.transaction_id == transaction_id).order_by(Task.created_at.asc()).all()
+    return (
+        db.query(Task)
+        .filter(Task.transaction_id == transaction_id)
+        .order_by(Task.created_at.asc())
+        .all()
+    )
 
 
 def list_tasks_by_user(db: Session, user_id: uuid.UUID) -> list[Task]:

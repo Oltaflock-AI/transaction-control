@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 
 from tc.core.config import settings
 from tc.core.security import create_access_token
-from tc.db.models.user import User
 from tc.db.models.membership import Membership
+from tc.db.models.user import User
 from tc.db.session import get_db
 from tc.services.auth_service import authenticate_user
 
@@ -41,7 +41,7 @@ def login(body: LoginRequest, db: DB):
         )
     membership = db.query(Membership).filter(Membership.user_id == user.id).first()
     role = membership.role if membership else "member"
-    
+
     return TokenResponse(
         access_token=create_access_token(subject=str(user.id)),
         user={
