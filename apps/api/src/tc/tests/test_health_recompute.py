@@ -38,13 +38,30 @@ def test_health_recompute_on_task_status_change(db, client, auth_header, seed_us
     assert r.status_code == 200
     assert r.json()["score"] == "RED"
 
-    # Now manually change task1 status to done. Health should recompute to GREEN.
+    # Now manually change task1 status to done.
     patch_rsp = client.patch(
         f"/api/v1/tasks/{task1.id}/status",
         json={"status": "done"},
         headers=auth_header,
     )
     assert patch_rsp.status_code == 200
+
+    # The rules engine creates an escalation task (due in 1 day = due soon).
+    # Mark all remaining open tasks as done so health returns to GREEN.
+    remaining = (
+        db.query(Task)
+        .filter(
+            Task.transaction_id == txn.id,
+            Task.status.notin_(["done"]),
+        )
+        .all()
+    )
+    for t in remaining:
+        client.patch(
+            f"/api/v1/tasks/{t.id}/status",
+            json={"status": "done"},
+            headers=auth_header,
+        )
 
     # Verify health score is updated on transaction
     r_txn = client.get(f"/api/v1/transactions/{txn.id}", headers=auth_header)

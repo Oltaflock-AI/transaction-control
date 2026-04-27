@@ -70,7 +70,10 @@ def check_deadlines(db: Session) -> dict:
             entity_type="task",
             entity_id=task.id,
             actor_id=None,
-            detail=f"Task '{task.title}' was automatically marked as OVERDUE",
+            detail=(
+                f"Task '{task.title}' was automatically marked as OVERDUE"
+                f" (transaction_id={task.transaction_id})"
+            ),
         )
 
         evaluate_rules(db, trigger="task.overdue", source_task=task)
