@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { HealthStatus } from "@/lib/types";
 import { getTransactions } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 import CreateTransactionDialog from "@/components/CreateTransactionDialog";
 
 const statusVariant = (s: string) => {
@@ -30,7 +31,37 @@ const TransactionsPage = () => {
   const { data: transactions, isLoading, refetch } = useQuery({ queryKey: ["transactions"], queryFn: getTransactions });
 
   if (isLoading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading transactions...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-32 mt-2" />
+          </div>
+          <Skeleton className="h-10 w-40" />
+        </div>
+        <div className="rounded-lg border bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {["Title", "Status", "Health", "Address", "Close Date", "Created"].map((h) => (
+                  <TableHead key={h}><Skeleton className="h-4 w-16" /></TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...Array(5)].map((_, i) => (
+                <TableRow key={i}>
+                  {[...Array(6)].map((_, j) => (
+                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    );
   }
 
   const txList = transactions || [];

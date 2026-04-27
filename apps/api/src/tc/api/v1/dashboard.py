@@ -37,12 +37,12 @@ def get_dashboard_stats(user: CurrentUser, db: DB):
         raise HTTPException(status_code=403, detail="Not a member of any organization")
 
     if membership.role == UserRole.admin:
-        total_txns, tasks_overdue, tasks_due_soon, deals_at_risk = (
-            get_admin_dashboard(db, membership.org_id)
+        total_txns, tasks_overdue, tasks_due_soon, deals_at_risk = get_admin_dashboard(
+            db, membership.org_id
         )
     else:
-        total_txns, tasks_overdue, tasks_due_soon, deals_at_risk = (
-            get_agent_dashboard(db, user.id, membership.org_id)
+        total_txns, tasks_overdue, tasks_due_soon, deals_at_risk = get_agent_dashboard(
+            db, user.id, membership.org_id
         )
 
     return {

@@ -5,13 +5,13 @@ import { getTransaction, getTransactionTimeline, getTransactionHealth, markTimel
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, CheckCircle2, Clock, AlertTriangle, Circle, UserPlus } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import CreateTaskDialog from "@/components/CreateTaskDialog";
 import type { HealthStatus, Task, TaskStatus, TimelineItem } from "@/lib/types";
-import { log } from "console";
 
 const healthColor: Record<HealthStatus, { bg: string; icon: typeof CheckCircle2 }> = {
   GREEN: { bg: "bg-success text-success-foreground", icon: CheckCircle2 },
@@ -85,7 +85,38 @@ const TransactionDetailPage = () => {
   });
 
   if (txLoading || healthLoading || timelineLoading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading transaction details...</div>;
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <Skeleton className="h-4 w-40" />
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-48 mt-2" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-6 w-16 rounded-full" />
+            <Skeleton className="h-6 w-16 rounded-full" />
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i}><CardContent className="pt-4"><Skeleton className="h-4 w-20" /><Skeleton className="h-6 w-32 mt-2" /></CardContent></Card>
+          ))}
+        </div>
+        <Card>
+          <CardHeader><Skeleton className="h-5 w-24" /></CardHeader>
+          <CardContent className="space-y-4">
+            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><Skeleton className="h-5 w-32" /></CardHeader>
+          <CardContent className="space-y-4">
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (!tx) {

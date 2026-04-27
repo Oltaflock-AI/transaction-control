@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import type { Task, TaskStatus } from "@/lib/types";
 import { CheckCircle2 } from "lucide-react";
@@ -65,7 +66,34 @@ const TasksPage = () => {
   };
 
   if (isLoading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading tasks...</div>;
+    return (
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-8 w-36" />
+          <Skeleton className="h-4 w-48 mt-2" />
+        </div>
+        <div className="rounded-lg border bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {["Title", "Status", "Severity", "Due Date", "Transaction", "Action"].map((h) => (
+                  <TableHead key={h}><Skeleton className="h-4 w-16" /></TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...Array(5)].map((_, i) => (
+                <TableRow key={i}>
+                  {[...Array(6)].map((_, j) => (
+                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    );
   }
 
   const tasks = myTasks || [];

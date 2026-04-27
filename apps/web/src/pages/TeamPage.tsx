@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { User } from "@/lib/types";
 
 type TeamMember = User & { role: string; is_active: boolean };
@@ -68,7 +69,37 @@ const TeamPage = () => {
   };
 
   if (isLoading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading team members...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-8 w-52" />
+            <Skeleton className="h-4 w-72 mt-2" />
+          </div>
+          <Skeleton className="h-10 w-28" />
+        </div>
+        <div className="rounded-lg border bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {["Member", "Email", "Role", "Status"].map((h) => (
+                  <TableHead key={h}><Skeleton className="h-4 w-16" /></TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...Array(4)].map((_, i) => (
+                <TableRow key={i}>
+                  {[...Array(4)].map((_, j) => (
+                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    );
   }
 
   const team = members || [];

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getDashboardStats, getMyTasks } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRightLeft, AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
 
 const DashboardHome = () => {
@@ -10,7 +11,28 @@ const DashboardHome = () => {
   const { data: myTasks, isLoading: tasksLoading } = useQuery({ queryKey: ["myTasks"], queryFn: getMyTasks });
 
   if (statsLoading || tasksLoading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading dashboard...</div>;
+    return (
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-72 mt-2" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2"><Skeleton className="h-4 w-24" /></CardHeader>
+              <CardContent><Skeleton className="h-8 w-16" /></CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardHeader><Skeleton className="h-5 w-40" /></CardHeader>
+          <CardContent className="space-y-3">
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (!stats) {

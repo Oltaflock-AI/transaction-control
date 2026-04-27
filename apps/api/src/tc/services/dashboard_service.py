@@ -51,9 +51,7 @@ def get_agent_dashboard(db: Session, user_id: uuid.UUID, org_id: uuid.UUID):
         or 0
     )
 
-    risk_txns_ids = (
-        db.query(Task.transaction_id).filter(Task.assignee_id == user_id).subquery()
-    )
+    risk_txns_ids = db.query(Task.transaction_id).filter(Task.assignee_id == user_id).subquery()
 
     deals_at_risk = (
         db.query(Transaction)

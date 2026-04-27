@@ -12,6 +12,7 @@ import TasksPage from "./pages/TasksPage";
 import AuditPage from "./pages/AuditPage";
 import TeamPage from "./pages/TeamPage";
 import NotFound from "./pages/NotFound";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { isAdmin } from "@/lib/auth";
 
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
@@ -25,21 +26,23 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<DashboardHome />} />
-            <Route path="transactions" element={<AdminRoute><TransactionsPage /></AdminRoute>} />
-            <Route path="transactions/:id" element={<AdminRoute><TransactionDetailPage /></AdminRoute>} />
-            <Route path="tasks" element={<TasksPage />} />
-            <Route path="team" element={<AdminRoute><TeamPage /></AdminRoute>} />
-            <Route path="audit" element={<AdminRoute><AuditPage /></AdminRoute>} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <ErrorBoundary>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/dashboard" element={<DashboardLayout />}>
+              <Route index element={<ErrorBoundary><DashboardHome /></ErrorBoundary>} />
+              <Route path="transactions" element={<AdminRoute><ErrorBoundary><TransactionsPage /></ErrorBoundary></AdminRoute>} />
+              <Route path="transactions/:id" element={<AdminRoute><ErrorBoundary><TransactionDetailPage /></ErrorBoundary></AdminRoute>} />
+              <Route path="tasks" element={<ErrorBoundary><TasksPage /></ErrorBoundary>} />
+              <Route path="team" element={<AdminRoute><ErrorBoundary><TeamPage /></ErrorBoundary></AdminRoute>} />
+              <Route path="audit" element={<AdminRoute><ErrorBoundary><AuditPage /></ErrorBoundary></AdminRoute>} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </ErrorBoundary>
     </TooltipProvider>
   </QueryClientProvider>
 );
