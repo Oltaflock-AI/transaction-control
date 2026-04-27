@@ -17,11 +17,11 @@ const LoginPage = () => {
 
   const loginMutation = useMutation({
     mutationFn: () => authLogin(email, password),
-    onSuccess: (data: any) => {
+    onSuccess: (data) => {
       authStoreLogin(data.access_token, data.user);
       navigate("/dashboard");
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setError(err.message || "Login failed. Please try again.");
     },
   });

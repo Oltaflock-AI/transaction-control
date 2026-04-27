@@ -63,7 +63,7 @@ const TransactionDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ["timeline", id] });
       toast({ title: "Timeline updated", description: "Item marked as complete." });
     },
-    onError: (err: any) => toast({ title: "Update failed", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => toast({ title: "Update failed", description: err.message, variant: "destructive" }),
   });
 
   const updateStatusMutation = useMutation({
@@ -72,7 +72,7 @@ const TransactionDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ["transaction", id] });
       toast({ title: "Task updated", description: `Status changed to ${variables.status.replace("_", " ")}.` });
     },
-    onError: (err: any) => toast({ title: "Update failed", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => toast({ title: "Update failed", description: err.message, variant: "destructive" }),
   });
 
   const assignTaskMutation = useMutation({
@@ -81,7 +81,7 @@ const TransactionDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ["transaction", id] });
       toast({ title: "Task assigned" });
     },
-    onError: (err: any) => toast({ title: "Assignment failed", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => toast({ title: "Assignment failed", description: err.message, variant: "destructive" }),
   });
 
   if (txLoading || healthLoading || timelineLoading) {

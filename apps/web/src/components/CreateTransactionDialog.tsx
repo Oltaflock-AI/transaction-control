@@ -44,7 +44,7 @@ const CreateTransactionDialog = ({ onCreated }: CreateTransactionDialogProps) =>
   const queryClient = useQueryClient();
   
   const mutation = useMutation({
-    mutationFn: (data: any) => createTransaction(data),
+    mutationFn: (data: Parameters<typeof createTransaction>[0]) => createTransaction(data),
     onSuccess: (newTx) => {
       toast({ title: "Transaction created", description: newTx.title });
       onCreated?.(newTx);
@@ -53,7 +53,7 @@ const CreateTransactionDialog = ({ onCreated }: CreateTransactionDialogProps) =>
       resetForm();
       navigate(`/dashboard/transactions/${newTx.id}`);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ title: "Failed to create transaction", description: err.message, variant: "destructive" });
       setLoading(false);
     }

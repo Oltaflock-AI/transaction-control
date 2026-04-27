@@ -55,7 +55,7 @@ const TasksPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myTasks"] });
     },
-    onError: (err: any) => toast({ title: "Failed to update status", description: err.message, variant: "destructive" })
+    onError: (err: Error) => toast({ title: "Failed to update status", description: err.message, variant: "destructive" })
   });
 
   const confirmToggleStatus = () => {

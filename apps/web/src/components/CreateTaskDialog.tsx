@@ -35,7 +35,7 @@ const CreateTaskDialog = ({ transactionId, transactionTitle, onTaskCreated }: Cr
   });
 
   const mutation = useMutation({
-    mutationFn: (data: any) => createTask(transactionId, data),
+    mutationFn: (data: Parameters<typeof createTask>[1]) => createTask(transactionId, data),
     onSuccess: (newTask) => {
       onTaskCreated(newTask);
       toast({ title: "Task created", description: `"${title}" added successfully.` });
@@ -49,7 +49,7 @@ const CreateTaskDialog = ({ transactionId, transactionTitle, onTaskCreated }: Cr
       queryClient.invalidateQueries({ queryKey: ["transaction", transactionId] });
       queryClient.invalidateQueries({ queryKey: ["myTasks"] });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ title: "Task creation failed", description: err.message, variant: "destructive" });
     }
   });

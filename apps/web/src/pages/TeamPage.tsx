@@ -60,7 +60,7 @@ const TeamPage = () => {
       setFormData({ full_name: "", email: "", password: "", role: "buyerAgent" });
       toast({ title: "User created successfully" });
     },
-    onError: (err: any) => toast({ title: "Failed to create user", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => toast({ title: "Failed to create user", description: err.message, variant: "destructive" }),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
