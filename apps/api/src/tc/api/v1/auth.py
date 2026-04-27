@@ -50,7 +50,7 @@ def login(body: LoginRequest, db: DB):
             "full_name": user.full_name,
             "role": role,
             "is_active": user.is_active,
-        }
+        },
     )
 
 
@@ -75,5 +75,5 @@ def dev_token(body: DevTokenRequest, db: DB):
             "full_name": user.full_name,
             "role": role,
             "is_active": user.is_active,
-        }
+        },
     )

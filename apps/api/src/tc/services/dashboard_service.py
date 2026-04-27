@@ -22,7 +22,8 @@ def get_agent_dashboard(db: Session, user_id: uuid.UUID, org_id: uuid.UUID):
             Transaction.org_id == org_id,
             Transaction.status != "closed",
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     tasks_overdue = (
@@ -33,7 +34,8 @@ def get_agent_dashboard(db: Session, user_id: uuid.UUID, org_id: uuid.UUID):
             Transaction.org_id == org_id,
             Task.status == TaskStatus.overdue,
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     tasks_due_soon = (
@@ -45,14 +47,12 @@ def get_agent_dashboard(db: Session, user_id: uuid.UUID, org_id: uuid.UUID):
             Task.status.notin_([TaskStatus.done, TaskStatus.overdue]),
             Task.due_at <= soon,
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
-    # Deals at risk they are part of
     risk_txns_ids = (
-        db.query(Task.transaction_id)
-        .filter(Task.assignee_id == user_id)
-        .subquery()
+        db.query(Task.transaction_id).filter(Task.assignee_id == user_id).subquery()
     )
 
     deals_at_risk = (
@@ -76,14 +76,16 @@ def get_admin_dashboard(db: Session, org_id: uuid.UUID):
     total_txns = (
         db.query(func.count(Transaction.id))
         .filter(Transaction.org_id == org_id, Transaction.status != "closed")
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     tasks_overdue = (
         db.query(func.count(Task.id))
         .join(Transaction)
         .filter(Transaction.org_id == org_id, Task.status == TaskStatus.overdue)
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     tasks_due_soon = (
@@ -94,7 +96,8 @@ def get_admin_dashboard(db: Session, org_id: uuid.UUID):
             Task.status.notin_([TaskStatus.done, TaskStatus.overdue]),
             Task.due_at <= soon,
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     deals_at_risk = (

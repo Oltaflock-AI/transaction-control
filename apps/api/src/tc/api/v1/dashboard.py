@@ -26,7 +26,7 @@ def _serialize_risk(t: Transaction) -> dict:
         "property_address": t.property_address,
         "health_score": t.health_score,
         "created_at": t.created_at.isoformat(),
-        "updated_at": t.updated_at.isoformat()
+        "updated_at": t.updated_at.isoformat(),
     }
 
 
